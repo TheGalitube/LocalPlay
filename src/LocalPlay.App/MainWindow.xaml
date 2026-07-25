@@ -457,25 +457,36 @@
 
                     <Border Background="#EAF1FF" CornerRadius="18" Padding="22">
                         <StackPanel>
-                            <TextBlock Text="Private LAN-Freigabe" FontWeight="SemiBold" FontSize="16"/>
-                            <TextBlock Text="Erlaubt nur Verbindungen aus deinem lokalen Subnetz im privaten Windows-Netzwerkprofil."
+                            <TextBlock Text="Windows-Firewall" FontWeight="SemiBold" FontSize="16"/>
+                            <TextBlock Text="Erlaubt nur Verbindungen aus dem lokalen Subnetz. Private und verwaltete Netzwerke sind standardmäßig aktiv."
                                        TextWrapping="Wrap"
                                        Foreground="#53627A"
                                        FontSize="12"
                                        Margin="0,7,0,0"/>
                             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                                 <Border Background="#D8E5FF" CornerRadius="7" Padding="9,5">
-                                    <TextBlock Text="Private" Foreground="#2F5BC7" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="FirewallProfilesText"
+                                               Text="Private + Domain"
+                                               Foreground="#2F5BC7"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"/>
                                 </Border>
                                 <Border Background="#D8E5FF" CornerRadius="7" Padding="9,5" Margin="8,0,0,0">
                                     <TextBlock Text="LocalSubnet" Foreground="#2F5BC7" FontSize="11" FontWeight="SemiBold"/>
                                 </Border>
                             </StackPanel>
+                            <CheckBox x:Name="AllowPublicNetworksCheckBox"
+                                      Margin="0,14,0,0"
+                                      Click="AllowPublicNetworksCheckBox_Click">
+                                <TextBlock Text="Auch öffentliche Windows-Netzwerke zulassen"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"/>
+                            </CheckBox>
                             <Button x:Name="NetworkFirewallButton"
-                                    Content="Firewall-Regeln aktualisieren"
+                                    Content="Firewall-Regeln einrichten"
                                     Background="#326BFF"
                                     Foreground="White"
-                                    Margin="0,17,0,0"
+                                    Margin="0,14,0,0"
                                     Click="FirewallButton_Click"/>
                         </StackPanel>
                     </Border>
@@ -524,7 +535,8 @@
                                            TextWrapping="Wrap"
                                            Margin="0,7,0,0"/>
                             </StackPanel>
-                            <Button Grid.Row="2"
+                            <Button x:Name="TestNetworkButton"
+                                    Grid.Row="2"
                                     Content="Netzwerk prüfen"
                                     Background="#E8EDFA"
                                     Foreground="#2F5BC7"

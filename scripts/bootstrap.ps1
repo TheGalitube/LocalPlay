@@ -56,9 +56,15 @@ if (-not $SkipEngine) {
         throw "MSYS2 was not found at $msysRoot after installation."
     }
 
+    Write-Host 'Updating MSYS2...'
+    & $bashExe -lc 'pacman -Syu --noconfirm'
+    if ($LASTEXITCODE -ne 0) {
+        throw "MSYS2 update failed with exit code $LASTEXITCODE."
+    }
+
     Write-Host 'Installing UxPlay compiler and media dependencies...'
     & $bashExe -lc @'
-pacman -Sy --noconfirm --needed \
+pacman -S --noconfirm --needed \
   mingw-w64-ucrt-x86_64-cmake \
   mingw-w64-ucrt-x86_64-gcc \
   mingw-w64-ucrt-x86_64-ninja \

@@ -60,8 +60,9 @@ public sealed partial class AirPlayEngine : IDisposable
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "LocalPlay");
         Directory.CreateDirectory(registryDirectory);
+        var engineTimestamp = File.GetLastWriteTimeUtc(executable).Ticks.ToString("x");
         startInfo.Environment["GST_REGISTRY"] =
-            Path.Combine(registryDirectory, "gstreamer-registry.bin");
+            Path.Combine(registryDirectory, $"gstreamer-registry-{engineTimestamp}.bin");
 
         var selectedAdapter = NetworkInfoService.ResolveAdapter(
             NetworkInfoService.GetAdapters(),

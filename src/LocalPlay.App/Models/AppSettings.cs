@@ -8,4 +8,5 @@ public sealed class AppSettings
     public string Quality { get; set; } = "1080p · 30 FPS";
     public string NetworkAdapterId { get; set; } = string.Empty;
     public int PortStart { get; set; } = 7000;
+    public bool AllowPublicNetworks { get; set; }
 }

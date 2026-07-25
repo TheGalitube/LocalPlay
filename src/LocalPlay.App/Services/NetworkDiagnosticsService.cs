@@ -38,12 +38,55 @@ public static class NetworkDiagnosticsService
                 "Der Startport muss zwischen 1024 und 65533 liegen.");
         }
 
+        var networkCategory =
+            WindowsNetworkProfileService.GetCategory(adapter.InterfaceIndex);
+        if (networkCategory == WindowsNetworkCategory.Public
+            && !settings.AllowPublicNetworks)
+        {
+            return new NetworkDiagnosticResult(
+                false,
+                "Öffentliches Netzwerk ist blockiert",
+                "Windows stuft diese Verbindung als öffentlich ein. Aktiviere die Option " +
+                "für öffentliche Netzwerke oder ändere das Windows-Netzwerkprofil.");
+        }
+
+        if (networkCategory == WindowsNetworkCategory.Unknown)
+        {
+            return new NetworkDiagnosticResult(
+                false,
+                "Netzwerkprofil nicht erkannt",
+                "Wähle den echten Ethernet- oder WLAN-Adapter statt eines virtuellen Adapters.");
+        }
+
+        var firewallStatus = FirewallService.GetRuleStatus(
+            settings.PortStart,
+            settings.AllowPublicNetworks);
+        if (firewallStatus != FirewallRuleStatus.Ready)
+        {
+            var details = firewallStatus switch
+            {
+                FirewallRuleStatus.Missing =>
+                    "Die LocalPlay-Firewall-Regeln fehlen auf diesem PC.",
+                FirewallRuleStatus.Mismatch =>
+                    "Die vorhandenen Regeln passen nicht zu Engine, Ports oder Netzwerkprofil.",
+                _ =>
+                    "Der Status der Windows-Firewall konnte nicht verifiziert werden."
+            };
+            return new NetworkDiagnosticResult(
+                false,
+                "Firewall-Freigabe erforderlich",
+                $"{details} Klicke auf „Firewall-Regeln einrichten“.");
+        }
+
+        var profileDescription =
+            WindowsNetworkProfileService.Describe(networkCategory);
         if (engineIsRunning)
         {
             return new NetworkDiagnosticResult(
                 true,
                 "Empfänger ist im LAN aktiv",
-                $"{adapter.Name} · {adapter.IPv4Address} · Ports {settings.PortStart}–{settings.PortStart + 2}");
+                $"{adapter.Name} · {adapter.IPv4Address} · {profileDescription} · " +
+                $"Ports {settings.PortStart}–{settings.PortStart + 2}");
         }
 
         var unavailablePorts = Enumerable.Range(settings.PortStart, 3)
@@ -61,7 +104,8 @@ public static class NetworkDiagnosticsService
         return new NetworkDiagnosticResult(
             true,
             "Netzwerk ist bereit",
-            $"{adapter.Name} · {adapter.IPv4Address} · Ports {settings.PortStart}–{settings.PortStart + 2} sind frei.");
+            $"{adapter.Name} · {adapter.IPv4Address} · {profileDescription} · " +
+            $"Ports {settings.PortStart}–{settings.PortStart + 2} sind frei.");
     }
 
     private static bool CanBind(int port)

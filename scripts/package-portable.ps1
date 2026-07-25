@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Version = '0.2.0',
+    [string]$Version = '0.2.1',
     [string]$MsysRoot = 'C:\msys64',
     [switch]$SkipPublish
 )
@@ -41,6 +41,15 @@ if (-not $dotnetExe) {
     throw 'The .NET 8 SDK is missing.'
 }
 
+$resolvedArtifactsRoot = [IO.Path]::GetFullPath($artifactsRoot)
+$resolvedPublishDirectory = [IO.Path]::GetFullPath($publishDirectory)
+$artifactsPrefix = $resolvedArtifactsRoot + [IO.Path]::DirectorySeparatorChar
+if (-not $resolvedPublishDirectory.StartsWith(
+    $artifactsPrefix,
+    [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Refusing to clean a publish directory outside artifacts.'
+}
+
 foreach ($requiredPath in @(
     $uxplayExecutable,
     $objdumpExecutable,
@@ -53,6 +62,10 @@ foreach ($requiredPath in @(
 }
 
 if (-not $SkipPublish) {
+    if (Test-Path $publishDirectory) {
+        Remove-Item -LiteralPath $publishDirectory -Recurse -Force
+    }
+
     Write-Host 'Publishing the self-contained Windows app...'
     $project = Join-Path $repoRoot 'src\LocalPlay.App\LocalPlay.App.csproj'
     & $dotnetExe publish $project -c Release -r win-x64 --self-contained true `
@@ -66,10 +79,9 @@ if (-not (Test-Path (Join-Path $publishDirectory 'LocalPlay.exe'))) {
     throw 'The published LocalPlay app is missing.'
 }
 
-$resolvedArtifactsRoot = [IO.Path]::GetFullPath($artifactsRoot)
 $resolvedPackageRoot = [IO.Path]::GetFullPath($packageRoot)
 if (-not $resolvedPackageRoot.StartsWith(
-    $resolvedArtifactsRoot + [IO.Path]::DirectorySeparatorChar,
+    $artifactsPrefix,
     [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Refusing to clean a package directory outside artifacts.'
 }
@@ -238,7 +250,7 @@ LocalPlay $Version for Windows x64
 1. Extract the complete ZIP file.
 2. Start LocalPlay.exe.
 3. Open "Netzwerk" and run the network test.
-4. Use "Firewall-Regeln aktualisieren" once and approve the Windows UAC prompt.
+4. Use "Firewall-Regeln einrichten" once and approve the Windows UAC prompt.
 5. Start the receiver and select LocalPlay on the Apple device.
 
 Keep the engine folder next to LocalPlay.exe. No installation, .NET runtime,

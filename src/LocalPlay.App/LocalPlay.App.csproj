@@ -8,7 +8,7 @@
     <AssemblyName>LocalPlay</AssemblyName>
     <RootNamespace>LocalPlay</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Authors>TheGalitube</Authors>
     <Description>Local AirPlay display receiver for Windows.</Description>
     <RepositoryUrl>https://github.com/TheGalitube/LocalPlay</RepositoryUrl>

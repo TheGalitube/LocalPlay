@@ -61,7 +61,7 @@ jobs:
           if ($env:GITHUB_REF_TYPE -eq 'tag') {
             $version = $env:GITHUB_REF_NAME.TrimStart('v')
           } else {
-            $version = "0.2.0-ci.$env:GITHUB_RUN_NUMBER"
+            $version = "0.2.1-ci.$env:GITHUB_RUN_NUMBER"
           }
           ./scripts/package-portable.ps1 `
             -Version $version `

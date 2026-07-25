@@ -67,6 +67,11 @@ public partial class MainWindow : Window
 
         var settings = ReadSettings();
         var adapter = NetworkInfoService.ResolveAdapter(_networkAdapters, settings.NetworkAdapterId);
+        if (adapter is null || !await EnsureFirewallReadyForStartAsync(settings, adapter))
+        {
+            return;
+        }
+
         _settingsStore.Save(settings);
         PinText.Visibility = Visibility.Collapsed;
         AppendLog(
@@ -90,7 +95,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void FirewallButton_Click(object sender, RoutedEventArgs e)
+    private async void FirewallButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryValidateNetworkSettings(out var errorMessage))
         {
@@ -98,19 +103,40 @@ public partial class MainWindow : Window
             return;
         }
 
+        NetworkFirewallButton.IsEnabled = false;
+        FirewallButton.IsEnabled = false;
         try
         {
             var settings = ReadSettings();
             _settingsStore.Save(settings);
-            FirewallService.RequestPrivateLanRule(settings.PortStart);
-            AppendLog(
-                $"Windows fragt nach Administratorrechten für TCP/UDP " +
-                $"{settings.PortStart}–{settings.PortStart + 2} im privaten LAN.");
+            AppendLog("Windows fragt nach Administratorrechten für die LAN-Freigabe.");
+            var result = await FirewallService.ConfigureLocalNetworkRulesAsync(
+                settings.PortStart,
+                settings.AllowPublicNetworks);
+            SetNetworkTestResult(result.IsSuccessful, result.IsSuccessful
+                ? "Firewall ist eingerichtet"
+                : "Firewall-Einrichtung fehlgeschlagen", result.Message);
+            AppendLog($"Firewall: {result.Message}");
+            MessageBox.Show(
+                this,
+                result.Message,
+                "Firewall-Freigabe",
+                MessageBoxButton.OK,
+                result.IsSuccessful
+                    ? MessageBoxImage.Information
+                    : result.WasCanceled
+                        ? MessageBoxImage.Warning
+                        : MessageBoxImage.Error);
         }
         catch (Exception exception)
         {
             MessageBox.Show(this, exception.Message, "Firewall-Freigabe",
                 MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            NetworkFirewallButton.IsEnabled = true;
+            FirewallButton.IsEnabled = true;
         }
     }
 
@@ -146,7 +172,7 @@ public partial class MainWindow : Window
         AppendLog("Netzwerkeinstellungen gespeichert.");
     }
 
-    private void TestNetworkButton_Click(object sender, RoutedEventArgs e)
+    private async void TestNetworkButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryValidateNetworkSettings(out var errorMessage))
         {
@@ -154,12 +180,23 @@ public partial class MainWindow : Window
             return;
         }
 
-        var result = NetworkDiagnosticsService.Run(
-            ReadSettings(),
-            _networkAdapters,
-            _engine.IsRunning);
-        SetNetworkTestResult(result.IsSuccessful, result.Title, result.Details);
-        AppendLog($"Netzwerktest: {result.Title}. {result.Details}");
+        TestNetworkButton.IsEnabled = false;
+        try
+        {
+            var settings = ReadSettings();
+            var adapters = _networkAdapters.ToArray();
+            var engineIsRunning = _engine.IsRunning;
+            var result = await Task.Run(() => NetworkDiagnosticsService.Run(
+                settings,
+                adapters,
+                engineIsRunning));
+            SetNetworkTestResult(result.IsSuccessful, result.Title, result.Details);
+            AppendLog($"Netzwerktest: {result.Title}. {result.Details}");
+        }
+        finally
+        {
+            TestNetworkButton.IsEnabled = true;
+        }
     }
 
     private void RefreshAdaptersButton_Click(object sender, RoutedEventArgs e)
@@ -211,6 +248,12 @@ public partial class MainWindow : Window
         }
     }
 
+    private void AllowPublicNetworksCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateFirewallProfileSummary();
+        ResetNetworkTest();
+    }
+
     private void PopulateNetworkAdapters(string? preferredId = null)
     {
         _loadingNetworkSettings = true;
@@ -237,6 +280,8 @@ public partial class MainWindow : Window
         ReceiverNameTextBox.Text = settings.ReceiverName;
         PinCheckBox.IsChecked = settings.RequirePin;
         FullscreenCheckBox.IsChecked = settings.Fullscreen;
+        AllowPublicNetworksCheckBox.IsChecked = settings.AllowPublicNetworks;
+        UpdateFirewallProfileSummary();
 
         QualityComboBox.SelectedIndex = settings.Quality switch
         {
@@ -285,8 +330,84 @@ public partial class MainWindow : Window
             NetworkAdapterId = selectedAdapter?.IsAutomatic == false
                 ? selectedAdapter.Id
                 : string.Empty,
-            PortStart = portStart
+            PortStart = portStart,
+            AllowPublicNetworks = AllowPublicNetworksCheckBox.IsChecked == true
         };
+    }
+
+    private async Task<bool> EnsureFirewallReadyForStartAsync(
+        AppSettings settings,
+        NetworkAdapterOption adapter)
+    {
+        var networkCategory = await Task.Run(
+            () => WindowsNetworkProfileService.GetCategory(adapter.InterfaceIndex));
+        if (networkCategory == WindowsNetworkCategory.Public
+            && !settings.AllowPublicNetworks)
+        {
+            const string message =
+                "Windows stuft diese Verbindung als öffentlich ein. Öffne „Netzwerk“ und " +
+                "erlaube öffentliche Windows-Netzwerke, wenn du diesem LAN vertraust.";
+            ShowPage(showNetwork: true);
+            SetNetworkTestResult(false, "Öffentliches Netzwerk ist blockiert", message);
+            MessageBox.Show(this, message, "LocalPlay",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return false;
+        }
+
+        if (networkCategory == WindowsNetworkCategory.Unknown)
+        {
+            const string message =
+                "Das Windows-Netzwerkprofil des ausgewählten Adapters konnte nicht erkannt werden. " +
+                "Wähle den echten Ethernet- oder WLAN-Adapter.";
+            ShowNetworkSettingsError(message);
+            return false;
+        }
+
+        var status = await Task.Run(() => FirewallService.GetRuleStatus(
+            settings.PortStart,
+            settings.AllowPublicNetworks));
+        if (status == FirewallRuleStatus.Ready)
+        {
+            return true;
+        }
+
+        var answer = MessageBox.Show(
+            this,
+            "LocalPlay benötigt einmalig passende Windows-Firewall-Regeln. " +
+            "Sie erlauben nur die gewählten Ports und mDNS aus dem lokalen Subnetz.\n\n" +
+            "Jetzt mit Administratorrechten einrichten?",
+            "Firewall einrichten",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+        if (answer != MessageBoxResult.Yes)
+        {
+            ShowPage(showNetwork: true);
+            SetNetworkTestResult(
+                false,
+                "Firewall-Freigabe erforderlich",
+                "Ohne die LAN-Freigabe können andere Geräte diesen PC nicht erreichen.");
+            return false;
+        }
+
+        var result = await FirewallService.ConfigureLocalNetworkRulesAsync(
+            settings.PortStart,
+            settings.AllowPublicNetworks);
+        SetNetworkTestResult(
+            result.IsSuccessful,
+            result.IsSuccessful ? "Firewall ist eingerichtet" : "Firewall-Einrichtung fehlgeschlagen",
+            result.Message);
+        AppendLog($"Firewall: {result.Message}");
+        if (!result.IsSuccessful)
+        {
+            ShowPage(showNetwork: true);
+            if (!result.WasCanceled)
+            {
+                MessageBox.Show(this, result.Message, "Firewall-Freigabe",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        return result.IsSuccessful;
     }
 
     private bool TryValidateNetworkSettings(out string errorMessage)
@@ -353,6 +474,18 @@ public partial class MainWindow : Window
             "Speichere die Auswahl oder starte einen neuen Verbindungstest.";
     }
 
+    private void UpdateFirewallProfileSummary()
+    {
+        if (FirewallProfilesText is null)
+        {
+            return;
+        }
+
+        FirewallProfilesText.Text = AllowPublicNetworksCheckBox.IsChecked == true
+            ? "Private + Domain + Public"
+            : "Private + Domain";
+    }
+
     private void SetNetworkTestResult(bool successful, string title, string details)
     {
         NetworkTestDot.Fill = successful ? ReadyBrush : FaultBrush;
@@ -394,6 +527,7 @@ public partial class MainWindow : Window
         FullscreenCheckBox.IsEnabled = !running;
         NetworkAdapterComboBox.IsEnabled = !running;
         PortStartTextBox.IsEnabled = !running;
+        AllowPublicNetworksCheckBox.IsEnabled = !running;
         SaveNetworkButton.IsEnabled = !running;
 
         if (!running)

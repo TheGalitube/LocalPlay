@@ -4,6 +4,7 @@ public sealed record NetworkAdapterOption(
     string Id,
     string Name,
     string IPv4Address,
+    int InterfaceIndex,
     bool HasGateway,
     string Kind,
     bool IsAutomatic = false)

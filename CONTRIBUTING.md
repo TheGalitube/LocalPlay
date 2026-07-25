@@ -30,7 +30,7 @@ Before tagging a release:
 
 ```powershell
 .\scripts\test.ps1
-.\scripts\package-portable.ps1 -Version 0.2.0
+.\scripts\package-portable.ps1 -Version 0.2.1
 ```
 
 Extract the generated ZIP into a clean directory and verify adapter discovery,

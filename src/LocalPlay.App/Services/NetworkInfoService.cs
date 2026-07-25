@@ -29,6 +29,7 @@ public static class NetworkInfoService
                         network.Id,
                         network.Name,
                         address.ToString(),
+                        properties.GetIPv4Properties()?.Index ?? 0,
                         hasGateway,
                         DescribeKind(network.NetworkInterfaceType));
             })
@@ -45,6 +46,7 @@ public static class NetworkInfoService
                 string.Empty,
                 "Automatisch",
                 string.Empty,
+                0,
                 false,
                 string.Empty,
                 IsAutomatic: true),
