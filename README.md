@@ -1,79 +1,126 @@
 # LocalPlay
 
-LocalPlay turns a Windows 10/11 PC into a local AirPlay display for iPhone,
-iPad, and Mac. It provides a native Windows launcher around the open-source
-[UxPlay](https://github.com/FDH2/UxPlay) receiver.
+[![Build](https://github.com/TheGalitube/LocalPlay/actions/workflows/ci.yml/badge.svg)](https://github.com/TheGalitube/LocalPlay/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/TheGalitube/LocalPlay?display_name=tag)](https://github.com/TheGalitube/LocalPlay/releases/latest)
+[![License](https://img.shields.io/github/license/TheGalitube/LocalPlay)](LICENSE)
 
-## What works
+LocalPlay macht einen Windows-10/11-PC zu einem lokalen AirPlay-Bildschirm für
+iPhone, iPad und Mac. Die native Windows-Oberfläche startet den
+Open-Source-Empfänger [UxPlay](https://github.com/FDH2/UxPlay); Streams und
+Geräteerkennung bleiben im lokalen Netzwerk.
 
-- Mirror an iPhone, iPad, or Mac display with audio.
-- Offer the receiver to macOS as a second AirPlay display.
-- Pair new devices with an Apple-style one-time PIN.
-- Keep inbound access on the Windows **Private** network profile and the local
-  subnet through a dedicated firewall rule.
-- Request 1080p, 1440p/2K, or 4K at up to 60 FPS from compatible clients.
-  Modes above 1080p automatically enable HEVC.
+## Einfach starten
 
-AirPlay is proprietary. LocalPlay relies on UxPlay's reverse-engineered legacy
-AirPlay 2 protocol. DRM-protected video, AirPlay 2 multi-room audio, keyboard
-and mouse forwarding, and guaranteed compatibility with future Apple releases
-are outside the MVP.
+### Für normale Nutzer
 
-## Build and run
+1. Lade unter [Releases](https://github.com/TheGalitube/LocalPlay/releases/latest)
+   die Datei `LocalPlay-<Version>-win-x64.zip` herunter.
+2. Entpacke die ZIP-Datei vollständig.
+3. Starte `LocalPlay.exe`.
+4. Öffne **Netzwerk**, führe den Verbindungstest aus und aktualisiere einmalig
+   die Firewall-Regeln.
+5. Starte den Empfänger und wähle **LocalPlay** auf dem Apple-Gerät.
 
-From PowerShell:
+Das Release ist portabel und selbstständig: .NET, MSYS2 und UxPlay müssen
+nicht separat installiert werden. Die EXE ist derzeit nicht digital signiert;
+zu jedem Release wird deshalb eine SHA-256-Prüfsumme veröffentlicht.
+
+### Direkt aus dem Repository
+
+Nach `git clone` oder **Code → Download ZIP** genügt ein Doppelklick auf:
+
+```text
+Start-LocalPlay.cmd
+```
+
+Beim ersten Start werden .NET 8, Git, MSYS2 und die benötigten
+Medienkomponenten bei Bedarf eingerichtet. Anschließend wird LocalPlay gebaut
+und geöffnet. Dafür werden eine Internetverbindung und `winget` benötigt; der
+erste Build kann einige Minuten dauern.
+
+Alternativ aus PowerShell:
 
 ```powershell
-.\scripts\bootstrap.ps1
 .\scripts\run.ps1
 ```
 
-The bootstrap installs build dependencies into the current user/workspace,
-builds UxPlay, and publishes the WPF app. It does not install a background
-service.
+## Verbindung
 
-The built app is placed in `artifacts\LocalPlay`. When first starting the
-receiver, use **Firewall freigeben** in the app and accept Windows' UAC prompt.
-The resulting rule is limited to private networks and `LocalSubnet`.
+- **iPhone/iPad:** Kontrollzentrum → Bildschirmsynchronisierung → LocalPlay
+- **Mac:** Kontrollzentrum → Bildschirmsynchronisierung → LocalPlay
+- **Zweiter Mac-Bildschirm:** Nach der Verbindung gegebenenfalls
+  „Als separaten Bildschirm verwenden“ auswählen.
 
-## Network settings
+Beide Geräte müssen sich im selben LAN befinden. Gast-WLANs und aktivierte
+Client-Isolation blockieren häufig mDNS oder direkte Geräteverbindungen.
 
-Open **Netzwerk** in the sidebar to:
+## Funktionen
 
-- keep automatic LAN selection or choose a specific active IPv4 adapter;
-- change the three consecutive TCP/UDP AirPlay ports (default 7000–7002);
-- refresh the private `LocalSubnet` firewall rules for those ports and mDNS;
-- test the selected adapter, receiver engine, and port availability.
+- Bildschirmspiegelung von iPhone, iPad und Mac mit Audio
+- Verwendung als zusätzlicher AirPlay-Bildschirm unter macOS
+- PIN-Kopplung für neue Geräte
+- 1080p, 1440p/2K und 4K mit bis zu 60 FPS
+- automatische oder manuelle Auswahl des IPv4-Netzwerkadapters
+- konfigurierbarer AirPlay-Portbereich
+- integrierter Netzwerk- und Porttest
+- Windows-Firewall-Regeln nur für `Private` und `LocalSubnet`
+- kein Cloud-Konto und kein Medien-Upload
 
-The chosen adapter is also used for mDNS discovery, so LocalPlay is announced
-on the intended Ethernet, Wi-Fi, VPN, or virtual connection instead of an
-unrelated interface. Adapter and port changes take effect after restarting the
-receiver.
+## Grenzen
 
-## Use from Apple devices
+AirPlay ist ein proprietäres Protokoll. LocalPlay verwendet UxPlays
+reverse-engineerte Unterstützung für ältere AirPlay-2-Verbindungen.
+DRM-geschützte Videos, Multiroom-Audio, Tastatur-/Mausweiterleitung und
+Kompatibilität mit zukünftigen Apple-Versionen sind nicht garantiert.
 
-- iPhone/iPad: open Control Center, tap **Screen Mirroring**, and choose
-  **LocalPlay**.
-- Mac: open Control Center, choose **Screen Mirroring**, then **LocalPlay**.
-  macOS can offer **Use As Separate Display** for a second desktop.
-- Enter the four-digit PIN shown by LocalPlay when pairing a device for the
-  first time.
+## Entwicklung
 
-Both devices must be on the same LAN. Guest Wi-Fi often blocks device-to-device
-traffic and mDNS discovery.
+Voraussetzungen für einen manuellen Build:
 
-## Development
-
-The UI targets .NET 8 WPF. The receiver is built from a pinned UxPlay commit by
-`scripts\bootstrap.ps1`; generated tools, sources, and binaries remain ignored.
+- Windows 10/11 x64
+- PowerShell 5.1 oder neuer
+- .NET SDK 8
+- MSYS2 UCRT64 mit den in `scripts/bootstrap.ps1` aufgeführten Paketen
 
 ```powershell
+.\scripts\bootstrap.ps1
 .\scripts\test.ps1
+.\scripts\package-portable.ps1 -Version 0.2.0
 ```
 
-## Licensing
+Ausgaben:
 
-LocalPlay application code is MIT licensed. UxPlay and the receiver code it
-contains are GPLv3; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-Distributing a package that contains UxPlay requires GPLv3 compliance and the
-corresponding source/license notices.
+- Entwicklungsbuild: `artifacts\LocalPlay`
+- portables Release: `artifacts\LocalPlay-<Version>-win-x64.zip`
+- SHA-256: gleichnamige Datei mit der Endung `.sha256`
+
+Pull Requests werden auf einem frischen Windows-Runner kompiliert. Ein Tag im
+Format `v1.2.3` baut automatisch das portable Paket und erstellt ein GitHub
+Release:
+
+```powershell
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Weitere Hinweise stehen in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Datenschutz und Sicherheit
+
+LocalPlay lauscht nur lokal und legt Firewall-Regeln ausschließlich für das
+private Netzwerkprofil und das lokale Subnetz an. Der Benutzer muss die
+Administratorabfrage für diese Regeln ausdrücklich bestätigen.
+
+Sicherheitsprobleme bitte gemäß [SECURITY.md](SECURITY.md) melden. Diagnose-Logs
+können lokale IP-Adressen enthalten und sollten vor dem Teilen geprüft werden.
+
+## Lizenzierung
+
+Der LocalPlay-Anwendungscode steht unter der MIT-Lizenz. UxPlay ist GPLv3;
+GStreamer und seine Bibliotheken verwenden verschiedene Open-Source-Lizenzen.
+Portable Pakete enthalten Hinweise, Lizenztexte, die exakte
+UxPlay-Upstream-Revision als Quellarchiv und den angewendeten Patch. Details:
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+LocalPlay ist weder mit Apple verbunden noch von Apple zertifiziert. Apple und
+AirPlay sind Marken von Apple Inc.

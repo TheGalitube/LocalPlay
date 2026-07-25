@@ -6,4 +6,8 @@ bin/
 obj/
 src/LocalPlay.App/engine/
 *.user
-
+.idea/
+TestResults/
+*.zip
+*.sha256
+*.lnk

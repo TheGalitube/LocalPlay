@@ -14,6 +14,8 @@ $uxplayRoot = Join-Path $depsRoot 'UxPlay'
 $uxplayCommit = 'acfb5494fb2b52ca358e62ef59d6ee0ab20dec49'
 $msysRoot = 'C:\msys64'
 $bashExe = Join-Path $msysRoot 'usr\bin\bash.exe'
+$gitExe = (Get-Command git -ErrorAction SilentlyContinue).Source
+$wingetExe = (Get-Command winget -ErrorAction SilentlyContinue).Source
 
 New-Item -ItemType Directory -Force -Path $toolsRoot, $depsRoot | Out-Null
 
@@ -25,9 +27,28 @@ if (-not (Test-Path $dotnetExe)) {
 }
 
 if (-not $SkipEngine) {
+    if (-not $wingetExe -and (-not (Test-Path $bashExe) -or -not $gitExe)) {
+        throw 'winget is required for the automatic setup. Install App Installer from Microsoft Store and retry.'
+    }
+
+    if (-not $gitExe) {
+        Write-Host 'Installing Git...'
+        & $wingetExe install --id Git.Git --exact --silent `
+            --accept-source-agreements --accept-package-agreements
+        $gitCandidates = @(
+            'C:\Program Files\Git\cmd\git.exe',
+            (Join-Path $env:LOCALAPPDATA 'Programs\Git\cmd\git.exe')
+        )
+        $gitExe = $gitCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    }
+
+    if (-not $gitExe) {
+        throw 'Git could not be found after installation.'
+    }
+
     if (-not (Test-Path $bashExe)) {
         Write-Host 'Installing MSYS2 (Windows build environment for UxPlay)...'
-        winget install --id MSYS2.MSYS2 --exact --silent `
+        & $wingetExe install --id MSYS2.MSYS2 --exact --silent `
             --accept-source-agreements --accept-package-agreements
     }
 
@@ -53,21 +74,30 @@ pacman -Sy --noconfirm --needed \
     }
 
     if (-not (Test-Path (Join-Path $uxplayRoot '.git'))) {
-        git clone https://github.com/FDH2/UxPlay.git $uxplayRoot
+        & $gitExe clone https://github.com/FDH2/UxPlay.git $uxplayRoot
+        if ($LASTEXITCODE -ne 0) {
+            throw "UxPlay could not be cloned (exit code $LASTEXITCODE)."
+        }
     }
 
-    git -C $uxplayRoot fetch --depth 1 origin $uxplayCommit
-    git -C $uxplayRoot checkout --detach $uxplayCommit
+    & $gitExe -C $uxplayRoot fetch --depth 1 origin $uxplayCommit
+    if ($LASTEXITCODE -ne 0) {
+        throw "The pinned UxPlay source could not be downloaded (exit code $LASTEXITCODE)."
+    }
+    & $gitExe -C $uxplayRoot checkout --detach $uxplayCommit
+    if ($LASTEXITCODE -ne 0) {
+        throw "The pinned UxPlay revision could not be checked out (exit code $LASTEXITCODE)."
+    }
 
     $mdnsPatch = Join-Path $repoRoot 'patches\uxplay-windows-mdns-interface.patch'
-    git -C $uxplayRoot apply --check $mdnsPatch 2>$null
+    & $gitExe -C $uxplayRoot apply --check $mdnsPatch 2>$null
     if ($LASTEXITCODE -eq 0) {
-        git -C $uxplayRoot apply $mdnsPatch
+        & $gitExe -C $uxplayRoot apply $mdnsPatch
         if ($LASTEXITCODE -ne 0) {
             throw "The LocalPlay UxPlay mDNS patch could not be applied."
         }
     } else {
-        git -C $uxplayRoot apply --reverse --check $mdnsPatch 2>$null
+        & $gitExe -C $uxplayRoot apply --reverse --check $mdnsPatch 2>$null
         if ($LASTEXITCODE -ne 0) {
             throw "The UxPlay source does not match the LocalPlay mDNS patch."
         }

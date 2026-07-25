@@ -40,8 +40,28 @@ public sealed partial class AirPlayEngine : IDisposable
         var binDirectory = Path.GetDirectoryName(executable)!;
         startInfo.Environment["PATH"] =
             binDirectory + Path.PathSeparator + startInfo.Environment["PATH"];
-        startInfo.Environment["GST_PLUGIN_SYSTEM_PATH_1_0"] =
-            Path.Combine(binDirectory, "..", "lib", "gstreamer-1.0");
+        var bundledPluginDirectory =
+            Path.Combine(binDirectory, "lib", "gstreamer-1.0");
+        var systemPluginDirectory =
+            Path.GetFullPath(Path.Combine(binDirectory, "..", "lib", "gstreamer-1.0"));
+        var pluginDirectory = Directory.Exists(bundledPluginDirectory)
+            ? bundledPluginDirectory
+            : systemPluginDirectory;
+        startInfo.Environment["GST_PLUGIN_SYSTEM_PATH_1_0"] = pluginDirectory;
+
+        var bundledPluginScanner =
+            Path.Combine(binDirectory, "libexec", "gstreamer-1.0", "gst-plugin-scanner.exe");
+        if (File.Exists(bundledPluginScanner))
+        {
+            startInfo.Environment["GST_PLUGIN_SCANNER"] = bundledPluginScanner;
+        }
+
+        var registryDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "LocalPlay");
+        Directory.CreateDirectory(registryDirectory);
+        startInfo.Environment["GST_REGISTRY"] =
+            Path.Combine(registryDirectory, "gstreamer-registry.bin");
 
         var selectedAdapter = NetworkInfoService.ResolveAdapter(
             NetworkInfoService.GetAdapters(),

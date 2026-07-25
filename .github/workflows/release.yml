@@ -1,0 +1,103 @@
+name: Portable release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build Windows x64 package
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+
+      - name: Set up MSYS2 and media dependencies
+        id: msys2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-libplist
+            mingw-w64-ucrt-x86_64-gstreamer
+            mingw-w64-ucrt-x86_64-gst-plugins-base
+            mingw-w64-ucrt-x86_64-gst-plugins-good
+            mingw-w64-ucrt-x86_64-gst-plugins-bad
+            mingw-w64-ucrt-x86_64-gst-libav
+
+      - name: Build patched UxPlay
+        shell: msys2 {0}
+        run: |
+          workspace="$(cygpath -u "$GITHUB_WORKSPACE")"
+          mkdir -p "$workspace/.deps"
+          git clone https://github.com/FDH2/UxPlay.git "$workspace/.deps/UxPlay"
+          cd "$workspace/.deps/UxPlay"
+          git checkout --detach acfb5494fb2b52ca358e62ef59d6ee0ab20dec49
+          git apply "$workspace/patches/uxplay-windows-mdns-interface.patch"
+          cmake -S . -B build -G Ninja -DUSE_MDNS=1 -DNO_MARCH_NATIVE=ON
+          cmake --build build
+          cmake --install build --prefix /ucrt64
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          } else {
+            $version = "0.2.0-ci.$env:GITHUB_RUN_NUMBER"
+          }
+          ./scripts/package-portable.ps1 `
+            -Version $version `
+            -MsysRoot '${{ steps.msys2.outputs.msys2-location }}'
+
+      - name: Smoke-test packaged receiver
+        shell: pwsh
+        run: |
+          $engine = Join-Path $env:GITHUB_WORKSPACE 'artifacts\package\LocalPlay\engine'
+          $env:PATH = "$engine;$env:PATH"
+          $env:GST_PLUGIN_SYSTEM_PATH_1_0 = Join-Path $engine 'lib\gstreamer-1.0'
+          $env:GST_PLUGIN_SCANNER = Join-Path $engine 'libexec\gstreamer-1.0\gst-plugin-scanner.exe'
+          $env:GST_REGISTRY = Join-Path $env:RUNNER_TEMP 'localplay-gstreamer-registry.bin'
+          & (Join-Path $engine 'gst-inspect-1.0.exe') d3d11videosink | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $engine 'gst-inspect-1.0.exe') wasapisink | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $engine 'gst-inspect-1.0.exe') avdec_h264 | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & (Join-Path $engine 'uxplay.exe') -h | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: LocalPlay-windows-x64
+          path: |
+            artifacts/LocalPlay-*-win-x64.zip
+            artifacts/LocalPlay-*-win-x64.zip.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@c12583777ecdfd3be55c69cf75464299dc01057e # v3
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/LocalPlay-*-win-x64.zip
+            artifacts/LocalPlay-*-win-x64.zip.sha256

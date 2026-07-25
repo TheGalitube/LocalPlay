@@ -1,16 +1,25 @@
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$dotnetExe = Join-Path $repoRoot '.tools\dotnet\dotnet.exe'
 $project = Join-Path $repoRoot 'src\LocalPlay.App\LocalPlay.App.csproj'
-
-if (-not (Test-Path $dotnetExe)) {
-    throw 'The workspace-local .NET SDK is missing. Run .\scripts\bootstrap.ps1 -SkipEngine first.'
+$workspaceDotnet = Join-Path $repoRoot '.tools\dotnet\dotnet.exe'
+$dotnetExe = if (Test-Path $workspaceDotnet) {
+    $workspaceDotnet
+} else {
+    (Get-Command dotnet -ErrorAction SilentlyContinue).Source
 }
 
-& $dotnetExe build $project -c Release
+if (-not $dotnetExe) {
+    throw 'The .NET 8 SDK is missing. Run .\scripts\bootstrap.ps1 -SkipEngine first.'
+}
+
+& $dotnetExe restore $project
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+& $dotnetExe build $project -c Release --no-restore
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
 Write-Host 'Build verification passed.'
-

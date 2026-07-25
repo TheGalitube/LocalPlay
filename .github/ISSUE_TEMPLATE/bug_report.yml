@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible LocalPlay problem.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove private information such as public IP addresses before submitting logs.
+  - type: input
+    id: version
+    attributes:
+      label: LocalPlay version
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: apple-device
+    attributes:
+      label: Apple device
+      options:
+        - iPhone
+        - iPad
+        - Mac
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include exact steps and the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: LocalPlay diagnostic log
+      render: text

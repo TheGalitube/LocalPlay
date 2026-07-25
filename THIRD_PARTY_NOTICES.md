@@ -21,6 +21,11 @@ README and license files, including RPiPlay, ShairPlay, PlayFair, llhttp, and
 other components. A binary distribution must include UxPlay's corresponding
 license and source offer/source code as required by GPLv3.
 
+LocalPlay's portable packaging script includes the exact pinned upstream
+UxPlay source archive, the LocalPlay patch, and the build script used to
+produce the receiver binary. These files are stored under `source/` in the
+portable package. The GPLv3 license is stored under `licenses/`.
+
 UxPlay's README notes that its AirPlay implementation is reverse-engineered
 from public information and that the legal status of its bundled FairPlay
 implementation is unclear. LocalPlay does not claim Apple certification or
@@ -32,6 +37,12 @@ The Windows receiver uses GStreamer and supporting libraries supplied by
 MSYS2. Their licenses vary by component and plugin. Redistribution must retain
 the license notices supplied by those projects and must be reviewed for the
 selected plugin set and distribution territory.
+
+The portable packaging script resolves the runtime DLL dependency closure,
+records the owning MSYS2 packages, and copies available package license
+directories into `licenses/`. It also includes the common LGPL 2.1 license
+used by GStreamer components. `licenses/PACKAGE-MANIFEST.txt` records the
+runtime package set for each generated archive.
 
 Apple and AirPlay are trademarks of Apple Inc. LocalPlay is not affiliated
 with or endorsed by Apple.
