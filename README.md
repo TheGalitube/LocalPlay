@@ -36,6 +36,20 @@ The built app is placed in `artifacts\LocalPlay`. When first starting the
 receiver, use **Firewall freigeben** in the app and accept Windows' UAC prompt.
 The resulting rule is limited to private networks and `LocalSubnet`.
 
+## Network settings
+
+Open **Netzwerk** in the sidebar to:
+
+- keep automatic LAN selection or choose a specific active IPv4 adapter;
+- change the three consecutive TCP/UDP AirPlay ports (default 7000–7002);
+- refresh the private `LocalSubnet` firewall rules for those ports and mDNS;
+- test the selected adapter, receiver engine, and port availability.
+
+The chosen adapter is also used for mDNS discovery, so LocalPlay is announced
+on the intended Ethernet, Wi-Fi, VPN, or virtual connection instead of an
+unrelated interface. Adapter and port changes take effect after restarting the
+receiver.
+
 ## Use from Apple devices
 
 - iPhone/iPad: open Control Center, tap **Screen Mirroring**, and choose

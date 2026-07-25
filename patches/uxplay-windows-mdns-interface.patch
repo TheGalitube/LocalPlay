@@ -32,7 +32,7 @@ index 597fc4c..e17e190 100644
      unsigned char ipv6_addr[16];
      unsigned int ipv6_scope_id;
      int sock_fd4;
-@@ -345,14 +349,94 @@ static int mdns_query_type_matches(uint16_t query_type, uint16_t record_type)
+@@ -345,14 +349,111 @@ static int mdns_query_type_matches(uint16_t query_type, uint16_t record_type)
      return query_type == record_type || query_type == DNS_TYPE_ANY;
  }
  
@@ -48,9 +48,18 @@ index 597fc4c..e17e190 100644
 +    IP_ADAPTER_ADDRESSES *adapter;
 +    uint32_t fallback = 0;
 +    unsigned int fallback_index = 0;
++    uint32_t requested_addr = 0;
++    const char *requested_text = getenv("UXPLAY_MDNS_IPV4");
 +    ULONG result;
 +
 +    *iface_index = 0;
++    if (requested_text && requested_text[0]) {
++        struct in_addr requested;
++        if (inet_pton(AF_INET, requested_text, &requested) == 1) {
++            requested_addr = requested.s_addr;
++        }
++    }
++
 +    adapters = (IP_ADAPTER_ADDRESSES *) malloc(buffer_size);
 +    if (!adapters) {
 +        return 0;
@@ -76,7 +85,7 @@ index 597fc4c..e17e190 100644
 +
 +        if (adapter->OperStatus != IfOperStatusUp ||
 +            adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
-+            adapter->IfType == IF_TYPE_TUNNEL) {
++            (adapter->IfType == IF_TYPE_TUNNEL && !requested_addr)) {
 +            continue;
 +        }
 +
@@ -98,7 +107,15 @@ index 597fc4c..e17e190 100644
 +                continue;
 +            }
 +
-+            if (adapter->FirstGatewayAddress) {
++            if (requested_addr &&
++                address->sin_addr.s_addr == requested_addr) {
++                uint32_t selected = address->sin_addr.s_addr;
++                *iface_index = adapter->IfIndex;
++                free(adapters);
++                return selected;
++            }
++
++            if (!requested_addr && adapter->FirstGatewayAddress) {
 +                uint32_t selected = address->sin_addr.s_addr;
 +                *iface_index = adapter->IfIndex;
 +                free(adapters);
@@ -128,7 +145,7 @@ index 597fc4c..e17e190 100644
      fd = socket(AF_INET, SOCK_DGRAM, 0);
      if (fd == -1) {
          return 0;
-@@ -370,6 +454,7 @@ static uint32_t mdns_get_default_ipv4(void)
+@@ -370,6 +471,7 @@ static uint32_t mdns_get_default_ipv4(void)
  
      CLOSESOCKET(fd);
      return addr;
@@ -136,7 +153,7 @@ index 597fc4c..e17e190 100644
  }
  
  static int mdns_get_default_ipv6(unsigned char addr[16], unsigned int *scope_id)
-@@ -430,7 +515,7 @@ static int mdns_get_default_ipv6(unsigned char addr[16], unsigned int *scope_id)
+@@ -430,7 +532,7 @@ static int mdns_get_default_ipv6(unsigned char addr[16], unsigned int *scope_id)
  #endif
  }
  
@@ -145,7 +162,7 @@ index 597fc4c..e17e190 100644
  {
      int fd;
      int one = 1;
-@@ -452,9 +537,20 @@ static int mdns_open_socket4(uint32_t iface_addr)
+@@ -452,9 +554,20 @@ static int mdns_open_socket4(uint32_t iface_addr)
      setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, (const char *) &loop, sizeof(loop));
  
      if (iface_addr) {
@@ -169,7 +186,7 @@ index 597fc4c..e17e190 100644
      }
  
      memset(&addr, 0, sizeof(addr));
-@@ -470,7 +566,9 @@ static int mdns_open_socket4(uint32_t iface_addr)
+@@ -470,7 +583,9 @@ static int mdns_open_socket4(uint32_t iface_addr)
  
      memset(&mreq, 0, sizeof(mreq));
      inet_pton(AF_INET, MDNS_ADDR4, &mreq.imr_multiaddr);
@@ -180,7 +197,7 @@ index 597fc4c..e17e190 100644
      if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                     (const char *) &mreq, sizeof(mreq)) == -1) {
          int error = SOCKET_GET_ERROR();
-@@ -675,8 +773,13 @@ static void mdns_send_packet4(mdnsd_t *mdnsd, const mdns_packet_t *packet,
+@@ -675,8 +790,13 @@ static void mdns_send_packet4(mdnsd_t *mdnsd, const mdns_packet_t *packet,
          inet_pton(AF_INET, MDNS_ADDR4, &addr.sin_addr);
      }
  
@@ -196,7 +213,7 @@ index 597fc4c..e17e190 100644
  }
  
  static void mdns_send_packet6(mdnsd_t *mdnsd, const mdns_packet_t *packet,
-@@ -989,18 +1092,34 @@ int mdnsd_start(mdnsd_t *mdnsd)
+@@ -989,18 +1109,34 @@ int mdnsd_start(mdnsd_t *mdnsd)
      int error4 = 0;
      int error6 = 0;
  

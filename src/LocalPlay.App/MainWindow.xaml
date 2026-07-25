@@ -20,6 +20,35 @@
             <GradientStop Color="#326BFF" Offset="0"/>
             <GradientStop Color="#58A0FF" Offset="1"/>
         </LinearGradientBrush>
+        <Style x:Key="SidebarNavButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#D8DFEC"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="13,10"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="NavBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="9"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavBorder" Property="Opacity" Value="0.86"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="NavBorder" Property="Opacity" Value="0.72"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -55,7 +84,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Row="1" Margin="0,60,0,0">
+                <StackPanel Grid.Row="1" Margin="0,42,0,0">
                     <Border Background="#1D2940" CornerRadius="10" Padding="13,11">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse x:Name="SidebarStatusDot" Width="8" Height="8" Fill="#7D889C" Margin="0,0,10,0"/>
@@ -63,10 +92,31 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="NAVIGATION" Foreground="#65728A" FontSize="10"
+                               FontWeight="Bold" Margin="4,26,0,6"/>
+                    <Button x:Name="ReceiverNavButton"
+                            Style="{StaticResource SidebarNavButton}"
+                            Background="#2858C6"
+                            Click="ReceiverNavButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="▣" FontSize="15" Width="27"/>
+                            <TextBlock Text="Empfänger" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NetworkNavButton"
+                            Style="{StaticResource SidebarNavButton}"
+                            Click="NetworkNavButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="◎" FontSize="16" Width="27"/>
+                            <TextBlock Text="Netzwerk" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <TextBlock Text="DIESES GERÄT" Foreground="#65728A" FontSize="10"
-                               FontWeight="Bold" Margin="4,30,0,9"/>
+                               FontWeight="Bold" Margin="4,27,0,9"/>
                     <TextBlock x:Name="HostNameText" Text="Windows PC" Foreground="#D8DFEC" Margin="4,0,0,4"/>
-                    <TextBlock x:Name="IpAddressText" Text="LAN wird geprüft …" Foreground="#7F8CA4" FontSize="12" Margin="4,0,0,0"/>
+                    <TextBlock x:Name="IpAddressText" Text="LAN wird geprüft …" Foreground="#7F8CA4" FontSize="12"
+                               TextWrapping="Wrap" Margin="4,0,0,0"/>
                 </StackPanel>
 
                 <StackPanel Grid.Row="2">
@@ -80,7 +130,7 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Column="1" Margin="36,28,36,30">
+        <Grid x:Name="ReceiverPage" Grid.Column="1" Margin="36,28,36,30">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -267,6 +317,218 @@
                                      Foreground="#667085"
                                      FontFamily="Cascadia Mono"
                                      FontSize="10.5"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Grid x:Name="NetworkPage"
+              Grid.Column="1"
+              Margin="36,28,36,30"
+              Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Netzwerk &amp; Discovery" FontSize="25" FontWeight="SemiBold"/>
+                    <TextBlock Text="Lege fest, über welche LAN-Verbindung Apple-Geräte LocalPlay finden."
+                               Foreground="{StaticResource MutedInk}" FontSize="13" Margin="0,6,0,0"/>
+                </StackPanel>
+                <Button x:Name="SaveNetworkButton"
+                        Content="Einstellungen speichern"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Background="{StaticResource Accent}"
+                        Foreground="White"
+                        Click="SaveNetworkButton_Click"/>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="0,26,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.14*"/>
+                    <ColumnDefinition Width="0.86*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Background="White"
+                        CornerRadius="20"
+                        Effect="{StaticResource CardShadow}"
+                        Padding="28">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="LAN-Schnittstelle" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="Die automatische Auswahl bevorzugt aktives Ethernet oder WLAN mit Internet-Gateway."
+                                       Foreground="{StaticResource MutedInk}"
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Margin="0,6,0,0"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="NetworkAdapterComboBox"
+                                      SelectionChanged="NetworkAdapterComboBox_SelectionChanged"/>
+                            <Button x:Name="RefreshAdaptersButton"
+                                    Grid.Column="2"
+                                    Content="Aktualisieren"
+                                    Background="#E8EDFA"
+                                    Foreground="#2F5BC7"
+                                    Click="RefreshAdaptersButton_Click"/>
+                        </Grid>
+
+                        <Border Grid.Row="2"
+                                Background="#F5F8FF"
+                                CornerRadius="12"
+                                Padding="14"
+                                Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="SelectedAdapterTitleText"
+                                           Text="Adapter wird ermittelt …"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock x:Name="SelectedAdapterDetailsText"
+                                           Text=""
+                                           Foreground="{StaticResource MutedInk}"
+                                           FontSize="12"
+                                           Margin="0,4,0,0"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Grid.Row="3" Margin="0,27,0,0">
+                            <TextBlock Text="AirPlay-Portbereich" FontSize="17" FontWeight="SemiBold"/>
+                            <TextBlock Text="LocalPlay verwendet drei aufeinanderfolgende Ports."
+                                       Foreground="{StaticResource MutedInk}"
+                                       FontSize="12"
+                                       Margin="0,5,0,0"/>
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="145"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="PortStartTextBox"
+                                         Text="7000"
+                                         MaxLength="5"
+                                         TextChanged="PortStartTextBox_TextChanged"/>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <TextBlock Text="Verwendeter Bereich" Foreground="#8A94A6" FontSize="10.5"/>
+                                    <TextBlock x:Name="PortRangeText"
+                                               Text="7000–7002"
+                                               FontWeight="SemiBold"
+                                               Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                        <Border Grid.Row="5"
+                                Background="#FFF7E7"
+                                CornerRadius="12"
+                                Padding="15">
+                            <TextBlock Text="Wenn du Adapter oder Ports änderst, starte den Empfänger neu und aktualisiere anschließend die Firewall-Freigabe."
+                                       Foreground="#7A5A18"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="1" Margin="22,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="18"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Background="#EAF1FF" CornerRadius="18" Padding="22">
+                        <StackPanel>
+                            <TextBlock Text="Private LAN-Freigabe" FontWeight="SemiBold" FontSize="16"/>
+                            <TextBlock Text="Erlaubt nur Verbindungen aus deinem lokalen Subnetz im privaten Windows-Netzwerkprofil."
+                                       TextWrapping="Wrap"
+                                       Foreground="#53627A"
+                                       FontSize="12"
+                                       Margin="0,7,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                <Border Background="#D8E5FF" CornerRadius="7" Padding="9,5">
+                                    <TextBlock Text="Private" Foreground="#2F5BC7" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <Border Background="#D8E5FF" CornerRadius="7" Padding="9,5" Margin="8,0,0,0">
+                                    <TextBlock Text="LocalSubnet" Foreground="#2F5BC7" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                            </StackPanel>
+                            <Button x:Name="NetworkFirewallButton"
+                                    Content="Firewall-Regeln aktualisieren"
+                                    Background="#326BFF"
+                                    Foreground="White"
+                                    Margin="0,17,0,0"
+                                    Click="FirewallButton_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2"
+                            Background="White"
+                            CornerRadius="18"
+                            Padding="22"
+                            Effect="{StaticResource CardShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="NetworkTestDot"
+                                             Width="9"
+                                             Height="9"
+                                             Fill="#7D889C"
+                                             Margin="0,0,9,0"/>
+                                    <TextBlock Text="Verbindungstest" FontWeight="SemiBold" FontSize="16"/>
+                                </StackPanel>
+                                <TextBlock x:Name="NetworkTestStatusText"
+                                           Text="Noch nicht geprüft"
+                                           FontWeight="SemiBold"
+                                           Margin="0,18,0,0"/>
+                                <TextBlock x:Name="NetworkTestDetailsText"
+                                           Text="Prüft Adapter, Engine und den gewählten Portbereich."
+                                           Foreground="{StaticResource MutedInk}"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Margin="0,5,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                <TextBlock Text="AirPlay Discovery"
+                                           Foreground="#8A94A6"
+                                           FontSize="10.5"/>
+                                <TextBlock Text="mDNS · UDP 5353"
+                                           FontWeight="SemiBold"
+                                           Margin="0,3,0,0"/>
+                                <TextBlock Text="Die Ankündigung bleibt auf der ausgewählten lokalen Schnittstelle."
+                                           Foreground="{StaticResource MutedInk}"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Margin="0,7,0,0"/>
+                            </StackPanel>
+                            <Button Grid.Row="2"
+                                    Content="Netzwerk prüfen"
+                                    Background="#E8EDFA"
+                                    Foreground="#2F5BC7"
+                                    Click="TestNetworkButton_Click"/>
                         </Grid>
                     </Border>
                 </Grid>

@@ -43,6 +43,14 @@ public sealed partial class AirPlayEngine : IDisposable
         startInfo.Environment["GST_PLUGIN_SYSTEM_PATH_1_0"] =
             Path.Combine(binDirectory, "..", "lib", "gstreamer-1.0");
 
+        var selectedAdapter = NetworkInfoService.ResolveAdapter(
+            NetworkInfoService.GetAdapters(),
+            settings.NetworkAdapterId);
+        if (selectedAdapter is not null)
+        {
+            startInfo.Environment["UXPLAY_MDNS_IPV4"] = selectedAdapter.IPv4Address;
+        }
+
         AddArguments(startInfo, settings, pairingRegisterPath);
 
         _process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
@@ -76,7 +84,8 @@ public sealed partial class AirPlayEngine : IDisposable
         startInfo.ArgumentList.Add(settings.ReceiverName);
         startInfo.ArgumentList.Add("-nh");
         startInfo.ArgumentList.Add("-p");
-        startInfo.ArgumentList.Add("7000,7001,7002");
+        startInfo.ArgumentList.Add(
+            $"{settings.PortStart},{settings.PortStart + 1},{settings.PortStart + 2}");
         startInfo.ArgumentList.Add("-vs");
         startInfo.ArgumentList.Add("d3d11videosink");
         startInfo.ArgumentList.Add("-as");
