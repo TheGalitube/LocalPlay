@@ -1,0 +1,235 @@
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index bcb414e..fb1bf7f 100644
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -72,7 +72,6 @@ elseif( WIN32 )
+                          playfair
+                          dnssd
+                          llhttp
+-                         wsock32
+ 			 iphlpapi
+                          ws2_32 )
+ else()
+diff --git a/lib/mdnsd/mdnsd.c b/lib/mdnsd/mdnsd.c
+index 597fc4c..e17e190 100644
+--- a/lib/mdnsd/mdnsd.c
++++ b/lib/mdnsd/mdnsd.c
+@@ -23,6 +23,9 @@
+ #endif
+ 
+ #include "../compat.h"
++#ifdef WIN32
++#include <iphlpapi.h>
++#endif
+ #include "mdnsd.h"
+ 
+ #define MDNS_ADDR4 "224.0.0.251"
+@@ -60,6 +63,7 @@ struct mdnsd_s {
+     mdnsd_service_t raop;
+ 
+     uint32_t ipv4_addr;
++    unsigned int ipv4_ifindex;
+     unsigned char ipv6_addr[16];
+     unsigned int ipv6_scope_id;
+     int sock_fd4;
+@@ -345,14 +349,94 @@ static int mdns_query_type_matches(uint16_t query_type, uint16_t record_type)
+     return query_type == record_type || query_type == DNS_TYPE_ANY;
+ }
+ 
+-static uint32_t mdns_get_default_ipv4(void)
++static uint32_t mdns_get_default_ipv4(unsigned int *iface_index)
+ {
++#ifdef WIN32
++    ULONG buffer_size = 15000;
++    ULONG flags = GAA_FLAG_SKIP_ANYCAST |
++                  GAA_FLAG_SKIP_MULTICAST |
++                  GAA_FLAG_SKIP_DNS_SERVER;
++    IP_ADAPTER_ADDRESSES *adapters = NULL;
++    IP_ADAPTER_ADDRESSES *adapter;
++    uint32_t fallback = 0;
++    unsigned int fallback_index = 0;
++    ULONG result;
++
++    *iface_index = 0;
++    adapters = (IP_ADAPTER_ADDRESSES *) malloc(buffer_size);
++    if (!adapters) {
++        return 0;
++    }
++
++    result = GetAdaptersAddresses(AF_INET, flags, NULL, adapters, &buffer_size);
++    if (result == ERROR_BUFFER_OVERFLOW) {
++        free(adapters);
++        adapters = (IP_ADAPTER_ADDRESSES *) malloc(buffer_size);
++        if (!adapters) {
++            return 0;
++        }
++        result = GetAdaptersAddresses(AF_INET, flags, NULL, adapters, &buffer_size);
++    }
++
++    if (result != NO_ERROR) {
++        free(adapters);
++        return 0;
++    }
++
++    for (adapter = adapters; adapter; adapter = adapter->Next) {
++        IP_ADAPTER_UNICAST_ADDRESS *unicast;
++
++        if (adapter->OperStatus != IfOperStatusUp ||
++            adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
++            adapter->IfType == IF_TYPE_TUNNEL) {
++            continue;
++        }
++
++        for (unicast = adapter->FirstUnicastAddress; unicast;
++             unicast = unicast->Next) {
++            struct sockaddr_in *address;
++            uint32_t host_address;
++
++            if (!unicast->Address.lpSockaddr ||
++                unicast->Address.lpSockaddr->sa_family != AF_INET) {
++                continue;
++            }
++
++            address = (struct sockaddr_in *) unicast->Address.lpSockaddr;
++            host_address = ntohl(address->sin_addr.s_addr);
++            if (!host_address ||
++                (host_address & 0xff000000U) == 0x7f000000U ||
++                (host_address & 0xffff0000U) == 0xa9fe0000U) {
++                continue;
++            }
++
++            if (adapter->FirstGatewayAddress) {
++                uint32_t selected = address->sin_addr.s_addr;
++                *iface_index = adapter->IfIndex;
++                free(adapters);
++                return selected;
++            }
++
++            if (!fallback &&
++                (adapter->IfType == IF_TYPE_ETHERNET_CSMACD ||
++                 adapter->IfType == IF_TYPE_IEEE80211)) {
++                fallback = address->sin_addr.s_addr;
++                fallback_index = adapter->IfIndex;
++            }
++        }
++    }
++
++    free(adapters);
++    *iface_index = fallback_index;
++    return fallback;
++#else
+     int fd;
+     uint32_t addr = 0;
+     struct sockaddr_in remote;
+     struct sockaddr_in local;
+     socklen_t local_len = sizeof(local);
+ 
++    *iface_index = 0;
+     fd = socket(AF_INET, SOCK_DGRAM, 0);
+     if (fd == -1) {
+         return 0;
+@@ -370,6 +454,7 @@ static uint32_t mdns_get_default_ipv4(void)
+ 
+     CLOSESOCKET(fd);
+     return addr;
++#endif
+ }
+ 
+ static int mdns_get_default_ipv6(unsigned char addr[16], unsigned int *scope_id)
+@@ -430,7 +515,7 @@ static int mdns_get_default_ipv6(unsigned char addr[16], unsigned int *scope_id)
+ #endif
+ }
+ 
+-static int mdns_open_socket4(uint32_t iface_addr)
++static int mdns_open_socket4(uint32_t iface_addr, unsigned int iface_index)
+ {
+     int fd;
+     int one = 1;
+@@ -452,9 +537,20 @@ static int mdns_open_socket4(uint32_t iface_addr)
+     setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, (const char *) &loop, sizeof(loop));
+ 
+     if (iface_addr) {
+-        struct in_addr iface;
+-        iface.s_addr = iface_addr;
+-        setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, (const char *) &iface, sizeof(iface));
++        uint32_t iface = iface_addr;
++#ifdef WIN32
++        if (iface_index) {
++            iface = htonl(iface_index);
++        }
++#else
++        (void) iface_index;
++#endif
++        if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF,
++                       (const char *) &iface, sizeof(iface)) == -1) {
++            int error = SOCKET_GET_ERROR();
++            printf("*** mDNS multicast interface error %d: %s\n",
++                   error, SOCKET_ERROR_STRING(error));
++        }
+     }
+ 
+     memset(&addr, 0, sizeof(addr));
+@@ -470,7 +566,9 @@ static int mdns_open_socket4(uint32_t iface_addr)
+ 
+     memset(&mreq, 0, sizeof(mreq));
+     inet_pton(AF_INET, MDNS_ADDR4, &mreq.imr_multiaddr);
+-    mreq.imr_interface.s_addr = iface_addr ? iface_addr : htonl(INADDR_ANY);
++    mreq.imr_interface.s_addr =
++        iface_index ? htonl(iface_index) :
++        (iface_addr ? iface_addr : htonl(INADDR_ANY));
+     if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+                    (const char *) &mreq, sizeof(mreq)) == -1) {
+         int error = SOCKET_GET_ERROR();
+@@ -675,8 +773,13 @@ static void mdns_send_packet4(mdnsd_t *mdnsd, const mdns_packet_t *packet,
+         inet_pton(AF_INET, MDNS_ADDR4, &addr.sin_addr);
+     }
+ 
+-    sendto(mdnsd->sock_fd4, (const char *) packet->bytes, (int) packet->length, 0,
+-           (struct sockaddr *) &addr, sizeof(addr));
++    if (sendto(mdnsd->sock_fd4, (const char *) packet->bytes,
++               (int) packet->length, 0, (struct sockaddr *) &addr,
++               sizeof(addr)) == -1) {
++        int error = SOCKET_GET_ERROR();
++        printf("*** mDNS IPv4 send error %d: %s\n",
++               error, SOCKET_ERROR_STRING(error));
++    }
+ }
+ 
+ static void mdns_send_packet6(mdnsd_t *mdnsd, const mdns_packet_t *packet,
+@@ -989,18 +1092,34 @@ int mdnsd_start(mdnsd_t *mdnsd)
+     int error4 = 0;
+     int error6 = 0;
+ 
+-    mdnsd->ipv4_addr = mdns_get_default_ipv4();
++    mdnsd->ipv4_addr = mdns_get_default_ipv4(&mdnsd->ipv4_ifindex);
+     mdns_get_default_ipv6(mdnsd->ipv6_addr, &mdnsd->ipv6_scope_id);
+ 
+-    mdnsd->sock_fd4 = mdns_open_socket4(mdnsd->ipv4_addr);
++    if (mdnsd->ipv4_addr) {
++        char ipv4_text[INET_ADDRSTRLEN] = {0};
++        struct in_addr ipv4_address;
++        ipv4_address.s_addr = mdnsd->ipv4_addr;
++        inet_ntop(AF_INET, &ipv4_address, ipv4_text, sizeof(ipv4_text));
++        printf("mDNS IPv4 interface: %s (index %u)\n",
++               ipv4_text, mdnsd->ipv4_ifindex);
++    }
++
++    mdnsd->sock_fd4 =
++        mdns_open_socket4(mdnsd->ipv4_addr, mdnsd->ipv4_ifindex);
+     if (mdnsd->sock_fd4 < 0) {
+         error4 = mdnsd->sock_fd4;
++        printf("*** mDNS IPv4 socket error %d: %s\n",
++               -error4, SOCKET_ERROR_STRING(-error4));
+         mdnsd->sock_fd4 = -1;
+     }
+ 
+     mdnsd->sock_fd6 = mdns_open_socket6(mdnsd->ipv6_scope_id);
+     if (mdnsd->sock_fd6 < 0) {
+         error6 = mdnsd->sock_fd6;
++        if (mdnsd->ipv6_scope_id) {
++            printf("*** mDNS IPv6 socket error %d: %s\n",
++                   -error6, SOCKET_ERROR_STRING(-error6));
++        }
+         mdnsd->sock_fd6 = -1;
+     }
+ 

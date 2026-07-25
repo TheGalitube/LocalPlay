@@ -1,0 +1,9 @@
+.deps/
+.tools/
+.vs/
+artifacts/
+bin/
+obj/
+src/LocalPlay.App/engine/
+*.user
+

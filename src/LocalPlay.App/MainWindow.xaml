@@ -1,0 +1,276 @@
+<Window x:Class="LocalPlay.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LocalPlay"
+        Width="1120"
+        Height="760"
+        MinWidth="960"
+        MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Canvas}"
+        FontFamily="Segoe UI Variable Text"
+        Foreground="{StaticResource Ink}">
+    <Window.Resources>
+        <DropShadowEffect x:Key="CardShadow"
+                          BlurRadius="26"
+                          ShadowDepth="4"
+                          Opacity="0.08"
+                          Color="#0A1733"/>
+        <LinearGradientBrush x:Key="HeroGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#326BFF" Offset="0"/>
+            <GradientStop Color="#58A0FF" Offset="1"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#11192B">
+            <Grid Margin="28,30">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="38" Height="38" CornerRadius="11" Background="{StaticResource HeroGradient}">
+                            <Grid>
+                                <Path Data="M 9,22 L 19,11 L 29,22 Z"
+                                      Fill="White"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Stretch="Uniform"
+                                      Width="22" Height="16"/>
+                            </Grid>
+                        </Border>
+                        <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="LocalPlay" Foreground="White" FontWeight="SemiBold" FontSize="18"/>
+                            <TextBlock Text="AirPlay für Windows" Foreground="#8F9BB2" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Margin="0,60,0,0">
+                    <Border Background="#1D2940" CornerRadius="10" Padding="13,11">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="SidebarStatusDot" Width="8" Height="8" Fill="#7D889C" Margin="0,0,10,0"/>
+                            <TextBlock x:Name="SidebarStatusText" Text="Empfänger aus" Foreground="White"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="DIESES GERÄT" Foreground="#65728A" FontSize="10"
+                               FontWeight="Bold" Margin="4,30,0,9"/>
+                    <TextBlock x:Name="HostNameText" Text="Windows PC" Foreground="#D8DFEC" Margin="4,0,0,4"/>
+                    <TextBlock x:Name="IpAddressText" Text="LAN wird geprüft …" Foreground="#7F8CA4" FontSize="12" Margin="4,0,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="2">
+                    <Border BorderBrush="#263149" BorderThickness="0,1,0,0" Padding="0,18,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Nur lokales Netzwerk" Foreground="#C9D2E2" FontSize="12"/>
+                            <TextBlock Text="Kein Cloud-Konto · kein Upload" Foreground="#718099" FontSize="11" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="36,28,36,30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="AirPlay-Empfänger" FontSize="25" FontWeight="SemiBold"/>
+                    <TextBlock Text="Spiegle Apple-Geräte oder nutze diesen PC als zweiten Mac-Bildschirm."
+                               Foreground="{StaticResource MutedInk}" FontSize="13" Margin="0,6,0,0"/>
+                </StackPanel>
+                <Button x:Name="FirewallButton"
+                        Content="Firewall freigeben"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Background="#E8EDFA"
+                        Foreground="#2F5BC7"
+                        Click="FirewallButton_Click"/>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="0,26,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.42*"/>
+                    <ColumnDefinition Width="0.92*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Background="{StaticResource Card}"
+                        CornerRadius="20"
+                        Effect="{StaticResource CardShadow}"
+                        Padding="30">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid HorizontalAlignment="Center">
+                            <Ellipse Width="126" Height="126" Fill="#EDF3FF"/>
+                            <Ellipse Width="88" Height="88" Fill="{StaticResource HeroGradient}"/>
+                            <Path Data="M 15,44 L 44,13 L 73,44 Z"
+                                  Fill="White"
+                                  Stretch="Uniform"
+                                  Width="54" Height="41"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,15,0,22">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Ellipse x:Name="MainStatusDot" Width="9" Height="9" Fill="#7D889C" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="MainStatusText" Text="Empfänger ist aus"
+                                           FontSize="17" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <TextBlock x:Name="PinText"
+                                       Text=""
+                                       Visibility="Collapsed"
+                                       HorizontalAlignment="Center"
+                                       FontSize="25"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource Accent}"
+                                       Margin="0,9,0,0"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="18"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Name auf Apple-Geräten" FontSize="12"
+                                           Foreground="{StaticResource MutedInk}" Margin="1,0,0,6"/>
+                                <TextBox x:Name="ReceiverNameTextBox" Text="LocalPlay" MaxLength="40"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Qualität" FontSize="12"
+                                           Foreground="{StaticResource MutedInk}" Margin="1,0,0,6"/>
+                                <ComboBox x:Name="QualityComboBox" SelectedIndex="0">
+                                    <ComboBoxItem Content="1080p · 30 FPS"/>
+                                    <ComboBoxItem Content="1080p · 60 FPS"/>
+                                    <ComboBoxItem Content="2K · 30 FPS (HEVC)"/>
+                                    <ComboBoxItem Content="2K · 60 FPS (HEVC)"/>
+                                    <ComboBoxItem Content="4K · 30 FPS (HEVC)"/>
+                                    <ComboBoxItem Content="4K · 60 FPS (HEVC)"/>
+                                </ComboBox>
+                                <TextBlock Text="2K/4K benötigen einen HEVC-fähigen Mac."
+                                           Foreground="#8A94A6"
+                                           FontSize="10.5"
+                                           Margin="2,6,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Grid.Row="3" Margin="2,20,0,0">
+                            <CheckBox x:Name="PinCheckBox"
+                                      Content="Neue Geräte per PIN koppeln"
+                                      IsChecked="True"/>
+                            <CheckBox x:Name="FullscreenCheckBox"
+                                      Content="Stream direkt im Vollbild öffnen"
+                                      Margin="0,12,0,0"/>
+                        </StackPanel>
+
+                        <Button Grid.Row="4"
+                                x:Name="StartStopButton"
+                                Content="Empfänger starten"
+                                Background="{StaticResource Accent}"
+                                Foreground="White"
+                                FontSize="15"
+                                Padding="22,13"
+                                Click="StartStopButton_Click"/>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="1" Margin="22,0,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="18"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Background="#EAF1FF" CornerRadius="18" Padding="22">
+                        <StackPanel>
+                            <TextBlock Text="So verbindest du dich" FontWeight="SemiBold" FontSize="16"/>
+
+                            <Grid Margin="0,18,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#326BFF"
+                                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                                    <TextBlock Text="1" Foreground="White" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" FontWeight="Bold"/>
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="iPhone &amp; iPad" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Kontrollzentrum → Bildschirmsynchronisierung → LocalPlay"
+                                               TextWrapping="Wrap" Foreground="#53627A" FontSize="12" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,17,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="34"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="26" Height="26" CornerRadius="13" Background="#326BFF"
+                                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                                    <TextBlock Text="2" Foreground="White" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" FontWeight="Bold"/>
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Mac" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Kontrollzentrum → Bildschirmsynchronisierung → LocalPlay. Danach ggf. „Als separaten Bildschirm verwenden“."
+                                               TextWrapping="Wrap" Foreground="#53627A" FontSize="12" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Background="White" CornerRadius="18" Padding="20"
+                            Effect="{StaticResource CardShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Fill="#3EC98E" Margin="0,0,9,0"/>
+                                <TextBlock Text="Diagnose" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <TextBox Grid.Row="1"
+                                     x:Name="LogTextBox"
+                                     Margin="0,13,0,0"
+                                     Padding="0"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     Foreground="#667085"
+                                     FontFamily="Cascadia Mono"
+                                     FontSize="10.5"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
