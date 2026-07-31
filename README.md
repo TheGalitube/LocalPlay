@@ -61,11 +61,20 @@ Client-Isolation blockieren häufig mDNS oder direkte Geräteverbindungen.
 - PIN-Kopplung für neue Geräte
 - 1080p, 1440p/2K und 4K mit bis zu 60 FPS
 - automatische oder manuelle Auswahl des IPv4-Netzwerkadapters
+- automatische Erneuerung der AirPlay-Ankündigung nach Netzwerkwechseln
+- optionaler Hintergrundbetrieb über den Windows-Infobereich
 - konfigurierbarer AirPlay-Portbereich
 - integrierter Netzwerk- und Porttest
 - Windows-Firewall-Regeln für `Private`/`Domain`, optional `Public`, immer nur
   für `LocalSubnet`
 - kein Cloud-Konto und kein Medien-Upload
+
+Den Hintergrundbetrieb aktivierst du auf der Seite **Empfänger** mit
+**Beim Schließen im Hintergrund weiterlaufen**. Danach blendet der
+Schließen-Button das Fenster aus, während der Prozess und ein gestarteter
+Empfänger weiterlaufen. Über das Symbol im Windows-Infobereich lässt sich das
+Fenster wieder öffnen oder LocalPlay vollständig beenden. Bei einer neuen
+Verbindung kommt das normale App-Fenster automatisch wieder nach vorn.
 
 ## Grenzen
 
@@ -128,6 +137,10 @@ muss die Administratorabfrage für diese Regeln bestätigen.
    können von LocalPlay nicht aufgehoben werden.
 5. Drittanbieter-Firewalls müssen `engine\uxplay.exe`, UDP 5353 sowie den
    ausgewählten TCP/UDP-Portbereich zulassen.
+
+Nach einem Wechsel von WLAN oder Ethernet erneuert LocalPlay die gebundene
+Adresse und die mDNS-Ankündigung automatisch. Ist vorübergehend kein LAN
+verfügbar, wartet die App und versucht die Wiederherstellung regelmäßig erneut.
 
 Sicherheitsprobleme bitte gemäß [SECURITY.md](SECURITY.md) melden. Diagnose-Logs
 können lokale IP-Adressen enthalten und sollten vor dem Teilen geprüft werden.

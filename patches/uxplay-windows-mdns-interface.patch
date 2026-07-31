@@ -1,3 +1,123 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -77,4 +77,7 @@ endif()
+ add_executable( uxplay uxplay.cpp )
++if (WIN32)
++    target_sources( uxplay PRIVATE uxplay.rc )
++endif()
+ target_link_libraries( uxplay renderers airplay )
+ if (DBUS_FOUND)
+       target_link_libraries( uxplay ${DBUS_LIBRARY})
+diff --git a/uxplay.rc b/uxplay.rc
+new file mode 100644
+--- /dev/null
++++ b/uxplay.rc
+@@ -0,0 +1,31 @@
++#include <windows.h>
++
++1 ICON "localplay.ico"
++
++VS_VERSION_INFO VERSIONINFO
++ FILEVERSION 1,0,0,0
++ PRODUCTVERSION 1,0,0,0
++ FILEFLAGSMASK 0x3fL
++ FILEFLAGS 0x0L
++ FILEOS VOS_NT_WINDOWS32
++ FILETYPE VFT_APP
++ FILESUBTYPE VFT2_UNKNOWN
++BEGIN
++    BLOCK "StringFileInfo"
++    BEGIN
++        BLOCK "040904b0"
++        BEGIN
++            VALUE "CompanyName", "LocalPlay contributors\0"
++            VALUE "FileDescription", "Local Play Viewer\0"
++            VALUE "FileVersion", "1.0.0.0\0"
++            VALUE "InternalName", "Local Play Viewer\0"
++            VALUE "OriginalFilename", "uxplay.exe\0"
++            VALUE "ProductName", "Local Play Viewer\0"
++            VALUE "ProductVersion", "1.0.0.0\0"
++        END
++    END
++    BLOCK "VarFileInfo"
++    BEGIN
++        VALUE "Translation", 0x0409, 1200
++    END
++END
+diff --git a/uxplay.cpp b/uxplay.cpp
+index 4ceaefd..534d9d0 100644
+--- a/uxplay.cpp
++++ b/uxplay.cpp
+@@ -40,6 +40,8 @@
+ #include <glib.h>
+ #include <unordered_map>
+ #include <winsock2.h>
++#include <windows.h>
++#include <cwctype>
+ #include <iphlpapi.h>
+ #include <pthread.h>   //for pthreads in MSYS2 UCRT
+ #else
+@@ -666,5 +668,48 @@ static gboolean video_eos_watch_callback (gpointer loop) {
+ #define MAX_VIDEO_RENDERERS 3
+ #define MAX_AUDIO_RENDERERS 2
++#ifdef _WIN32
++static BOOL CALLBACK brand_renderer_window(HWND window, LPARAM unused) {
++    (void) unused;
++    DWORD process_id = 0;
++    GetWindowThreadProcessId(window, &process_id);
++    if (process_id != GetCurrentProcessId() || !IsWindowVisible(window)) {
++        return TRUE;
++    }
++
++    wchar_t title[256] = { 0 };
++    GetWindowTextW(window, title, sizeof(title) / sizeof(title[0]));
++    std::wstring normalized_title(title);
++    std::transform(normalized_title.begin(), normalized_title.end(),
++                   normalized_title.begin(), towlower);
++    if (normalized_title.find(L"renderer") == std::wstring::npos &&
++        normalized_title.find(L"direct3d") == std::wstring::npos) {
++        return TRUE;
++    }
++
++    static HICON large_icon = (HICON) LoadImageW(
++        GetModuleHandleW(NULL), MAKEINTRESOURCEW(1), IMAGE_ICON,
++        GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR);
++    static HICON small_icon = (HICON) LoadImageW(
++        GetModuleHandleW(NULL), MAKEINTRESOURCEW(1), IMAGE_ICON,
++        GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
++
++    SetWindowTextW(window, L"Local Play Viewer");
++    if (large_icon) {
++        SendMessageW(window, WM_SETICON, ICON_BIG, (LPARAM) large_icon);
++    }
++    if (small_icon) {
++        SendMessageW(window, WM_SETICON, ICON_SMALL, (LPARAM) small_icon);
++    }
++    return TRUE;
++}
++
++static gboolean brand_renderer_windows(gpointer unused) {
++    (void) unused;
++    EnumWindows(brand_renderer_window, 0);
++    return G_SOURCE_CONTINUE;
++}
++#endif
++
+ static void main_loop()  {
+     guint gst_video_bus_watch_id[MAX_VIDEO_RENDERERS] = { 0 };
+     guint gst_audio_bus_watch_id[MAX_AUDIO_RENDERERS] = { 0 };
+@@ -721,2 +766,4 @@ static void main_loop()  {
+ #ifdef _WIN32
++    guint renderer_brand_watch_id =
++        g_timeout_add(250, (GSourceFunc) brand_renderer_windows, NULL);
+     gmainloop = loop;
+@@ -733,4 +780,5 @@ static void main_loop()  {
+ #ifdef _WIN32
++    if (renderer_brand_watch_id > 0) g_source_remove(renderer_brand_watch_id);
+     gmainloop = NULL;
+ #else
+     signal(SIGINT, CtrlHandler);  //switch back to non-mainloop CtrlHandler
 diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
 index bcb414e..fb1bf7f 100644
 --- a/lib/CMakeLists.txt

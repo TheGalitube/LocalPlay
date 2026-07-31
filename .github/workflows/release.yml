@@ -51,6 +51,7 @@ jobs:
           cd "$workspace/.deps/UxPlay"
           git checkout --detach acfb5494fb2b52ca358e62ef59d6ee0ab20dec49
           git apply "$workspace/patches/uxplay-windows-mdns-interface.patch"
+          cp "$workspace/src/LocalPlay.App/Assets/LocalPlay.ico" localplay.ico
           cmake -S . -B build -G Ninja -DUSE_MDNS=1 -DNO_MARCH_NATIVE=ON
           cmake --build build
           cmake --install build --prefix /ucrt64
@@ -83,6 +84,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & (Join-Path $engine 'uxplay.exe') -h | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $viewer = (Get-Item (Join-Path $engine 'uxplay.exe')).VersionInfo
+          if ($viewer.FileDescription -ne 'Local Play Viewer') {
+            throw "Unexpected viewer process name: $($viewer.FileDescription)"
+          }
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
