@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 using LocalPlay.Models;
 
@@ -6,26 +7,83 @@ namespace LocalPlay.Services;
 
 public sealed partial class AirPlayEngine : IDisposable
 {
-    private Process? _process;
-    private bool _requestedStop;
+    private static readonly TimeSpan NetworkChangeDebounce = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan RecoveryRetryDelay = TimeSpan.FromSeconds(5);
 
-    public bool IsRunning => _process is { HasExited: false };
+    private readonly SemaphoreSlim _lifecycleLock = new(1, 1);
+    private readonly object _stateLock = new();
+    private Process? _process;
+    private AppSettings? _settings;
+    private string? _pairingRegisterPath;
+    private CancellationTokenSource? _recoveryCancellation;
+    private bool _networkEventsSubscribed;
+    private bool _shouldRun;
+    private bool _disposed;
+
+    public bool IsRunning
+    {
+        get
+        {
+            lock (_stateLock)
+            {
+                try
+                {
+                    return _process is { HasExited: false };
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
     public event Action<string>? LogReceived;
     public event Action<ReceiverState, string>? StateChanged;
     public event Action<string>? PinReceived;
+    public event Action? ClientConnected;
 
-    public Task StartAsync(AppSettings settings, string pairingRegisterPath)
+    public async Task StartAsync(AppSettings settings, string pairingRegisterPath)
     {
-        if (IsRunning)
-        {
-            return Task.CompletedTask;
-        }
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _shouldRun = true;
+        _settings = CopySettings(settings);
+        _pairingRegisterPath = pairingRegisterPath;
+        SubscribeToNetworkChanges();
+        CancelRecovery();
 
+        await _lifecycleLock.WaitAsync();
+        try
+        {
+            if (IsRunning)
+            {
+                return;
+            }
+
+            await StartProcessAsync(_settings, pairingRegisterPath);
+        }
+        catch
+        {
+            _shouldRun = false;
+            UnsubscribeFromNetworkChanges();
+            throw;
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    private async Task StartProcessAsync(AppSettings settings, string pairingRegisterPath)
+    {
         var executable = EngineLocator.Find()
             ?? throw new FileNotFoundException(
                 "Die AirPlay-Engine wurde nicht gefunden. Bitte zuerst scripts\\bootstrap.ps1 ausführen.");
+        var selectedAdapter = NetworkInfoService.ResolveAdapter(
+            NetworkInfoService.GetAdapters(),
+            settings.NetworkAdapterId)
+            ?? throw new NetworkUnavailableException();
 
-        _requestedStop = false;
         ChangeState(ReceiverState.Starting, "Empfänger wird gestartet …");
 
         var startInfo = new ProcessStartInfo(executable)
@@ -40,14 +98,13 @@ public sealed partial class AirPlayEngine : IDisposable
         var binDirectory = Path.GetDirectoryName(executable)!;
         startInfo.Environment["PATH"] =
             binDirectory + Path.PathSeparator + startInfo.Environment["PATH"];
-        var bundledPluginDirectory =
-            Path.Combine(binDirectory, "lib", "gstreamer-1.0");
+        var bundledPluginDirectory = Path.Combine(binDirectory, "lib", "gstreamer-1.0");
         var systemPluginDirectory =
             Path.GetFullPath(Path.Combine(binDirectory, "..", "lib", "gstreamer-1.0"));
-        var pluginDirectory = Directory.Exists(bundledPluginDirectory)
-            ? bundledPluginDirectory
-            : systemPluginDirectory;
-        startInfo.Environment["GST_PLUGIN_SYSTEM_PATH_1_0"] = pluginDirectory;
+        startInfo.Environment["GST_PLUGIN_SYSTEM_PATH_1_0"] =
+            Directory.Exists(bundledPluginDirectory)
+                ? bundledPluginDirectory
+                : systemPluginDirectory;
 
         var bundledPluginScanner =
             Path.Combine(binDirectory, "libexec", "gstreamer-1.0", "gst-plugin-scanner.exe");
@@ -63,37 +120,47 @@ public sealed partial class AirPlayEngine : IDisposable
         var engineTimestamp = File.GetLastWriteTimeUtc(executable).Ticks.ToString("x");
         startInfo.Environment["GST_REGISTRY"] =
             Path.Combine(registryDirectory, $"gstreamer-registry-{engineTimestamp}.bin");
-
-        var selectedAdapter = NetworkInfoService.ResolveAdapter(
-            NetworkInfoService.GetAdapters(),
-            settings.NetworkAdapterId);
-        if (selectedAdapter is not null)
-        {
-            startInfo.Environment["UXPLAY_MDNS_IPV4"] = selectedAdapter.IPv4Address;
-        }
+        startInfo.Environment["UXPLAY_MDNS_IPV4"] = selectedAdapter.IPv4Address;
 
         AddArguments(startInfo, settings, pairingRegisterPath);
 
-        _process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
-        _process.OutputDataReceived += HandleOutput;
-        _process.ErrorDataReceived += HandleOutput;
-        _process.Exited += (_, _) =>
-        {
-            var exitCode = _process?.ExitCode ?? -1;
-            ChangeState(
-                _requestedStop ? ReceiverState.Stopped : ReceiverState.Faulted,
-                _requestedStop ? "Empfänger ist aus" : $"Engine wurde beendet (Code {exitCode})");
-        };
+        var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+        process.OutputDataReceived += HandleOutput;
+        process.ErrorDataReceived += HandleOutput;
+        process.Exited += (_, _) => HandleUnexpectedExit(process);
 
-        if (!_process.Start())
+        lock (_stateLock)
         {
-            ChangeState(ReceiverState.Faulted, "Engine konnte nicht gestartet werden");
-            throw new InvalidOperationException("Die AirPlay-Engine konnte nicht gestartet werden.");
+            _process = process;
         }
 
-        _process.BeginOutputReadLine();
-        _process.BeginErrorReadLine();
-        return Task.CompletedTask;
+        try
+        {
+            if (!process.Start())
+            {
+                throw new InvalidOperationException("Die AirPlay-Engine konnte nicht gestartet werden.");
+            }
+
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            LogReceived?.Invoke(
+                $"mDNS wird auf {selectedAdapter.Name} ({selectedAdapter.IPv4Address}) beworben.");
+            await Task.CompletedTask;
+        }
+        catch
+        {
+            lock (_stateLock)
+            {
+                if (ReferenceEquals(_process, process))
+                {
+                    _process = null;
+                }
+            }
+
+            process.Dispose();
+            ChangeState(ReceiverState.Faulted, "Engine konnte nicht gestartet werden");
+            throw;
+        }
     }
 
     private static void AddArguments(
@@ -184,6 +251,7 @@ public sealed partial class AirPlayEngine : IDisposable
         }
         else if (line.Contains("connection request from", StringComparison.OrdinalIgnoreCase))
         {
+            ClientConnected?.Invoke();
             ChangeState(ReceiverState.Streaming, "Apple-Gerät verbunden");
         }
         else if (line.Contains("raop service", StringComparison.OrdinalIgnoreCase)
@@ -191,6 +259,11 @@ public sealed partial class AirPlayEngine : IDisposable
                  || line.Contains("using system MAC", StringComparison.OrdinalIgnoreCase))
         {
             ChangeState(ReceiverState.Ready, "Bereit für AirPlay");
+        }
+        else if (IsMdnsFailure(line))
+        {
+            LogReceived?.Invoke("mDNS-Fehler erkannt; die Netzwerkdienste werden erneuert.");
+            ScheduleRecovery("mDNS-Ankündigung fehlgeschlagen", TimeSpan.FromSeconds(1));
         }
         else if (line.Contains("error", StringComparison.OrdinalIgnoreCase))
         {
@@ -200,39 +273,286 @@ public sealed partial class AirPlayEngine : IDisposable
 
     public async Task StopAsync()
     {
-        var process = _process;
-        if (process is null || process.HasExited)
+        _shouldRun = false;
+        CancelRecovery();
+        UnsubscribeFromNetworkChanges();
+
+        await _lifecycleLock.WaitAsync();
+        try
         {
+            await StopProcessAsync();
             ChangeState(ReceiverState.Stopped, "Empfänger ist aus");
+        }
+        finally
+        {
+            _lifecycleLock.Release();
+        }
+    }
+
+    private async Task StopProcessAsync()
+    {
+        Process? process;
+        lock (_stateLock)
+        {
+            process = _process;
+            _process = null;
+        }
+
+        if (process is null)
+        {
             return;
         }
 
-        _requestedStop = true;
         try
         {
-            process.Kill(true);
-            await process.WaitForExitAsync();
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
         }
         catch (InvalidOperationException)
         {
-            ChangeState(ReceiverState.Stopped, "Empfänger ist aus");
+            // The process exited between the state check and termination.
+        }
+        finally
+        {
+            process.Dispose();
         }
     }
+
+    private void SubscribeToNetworkChanges()
+    {
+        if (_networkEventsSubscribed)
+        {
+            return;
+        }
+
+        NetworkChange.NetworkAddressChanged += HandleNetworkAddressChanged;
+        NetworkChange.NetworkAvailabilityChanged += HandleNetworkAvailabilityChanged;
+        _networkEventsSubscribed = true;
+    }
+
+    private void UnsubscribeFromNetworkChanges()
+    {
+        if (!_networkEventsSubscribed)
+        {
+            return;
+        }
+
+        NetworkChange.NetworkAddressChanged -= HandleNetworkAddressChanged;
+        NetworkChange.NetworkAvailabilityChanged -= HandleNetworkAvailabilityChanged;
+        _networkEventsSubscribed = false;
+    }
+
+    private void HandleNetworkAddressChanged(object? sender, EventArgs eventArgs) =>
+        ScheduleRecovery("Netzwerkadresse wurde geändert", NetworkChangeDebounce);
+
+    private void HandleNetworkAvailabilityChanged(
+        object? sender,
+        NetworkAvailabilityEventArgs eventArgs) =>
+        ScheduleRecovery("Netzwerkverfügbarkeit wurde geändert", NetworkChangeDebounce);
+
+    private void ScheduleRecovery(string reason, TimeSpan delay)
+    {
+        if (!_shouldRun || _disposed)
+        {
+            return;
+        }
+
+        CancellationTokenSource cancellation;
+        lock (_stateLock)
+        {
+            _recoveryCancellation?.Cancel();
+            cancellation = new CancellationTokenSource();
+            _recoveryCancellation = cancellation;
+        }
+
+        _ = RecoverAsync(reason, delay, cancellation);
+    }
+
+    private async Task RecoverAsync(
+        string reason,
+        TimeSpan delay,
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await Task.Delay(delay, cancellation.Token);
+            var firstAttempt = true;
+
+            while (_shouldRun)
+            {
+                await _lifecycleLock.WaitAsync(cancellation.Token);
+                try
+                {
+                    if (!_shouldRun || _settings is null || _pairingRegisterPath is null)
+                    {
+                        return;
+                    }
+
+                    if (firstAttempt)
+                    {
+                        LogReceived?.Invoke($"{reason}; AirPlay-Dienste werden neu gestartet.");
+                        ChangeState(ReceiverState.Starting, "Netzwerkdienste werden erneuert …");
+                        await StopProcessAsync();
+                        firstAttempt = false;
+                    }
+
+                    try
+                    {
+                        await StartProcessAsync(_settings, _pairingRegisterPath);
+                        LogReceived?.Invoke("AirPlay-Dienste wurden erfolgreich neu beworben.");
+                        return;
+                    }
+                    catch (NetworkUnavailableException)
+                    {
+                        ChangeState(
+                            ReceiverState.Starting,
+                            "Warte auf eine aktive LAN-Verbindung …");
+                        LogReceived?.Invoke(
+                            "Noch keine aktive IPv4-LAN-Verbindung; neuer Versuch in 5 Sekunden.");
+                    }
+                    catch (Exception exception)
+                    {
+                        ChangeState(ReceiverState.Faulted, "Wiederherstellung wird erneut versucht …");
+                        LogReceived?.Invoke(
+                            $"Neustart fehlgeschlagen: {exception.Message} Neuer Versuch in 5 Sekunden.");
+                    }
+                }
+                finally
+                {
+                    _lifecycleLock.Release();
+                }
+
+                await Task.Delay(RecoveryRetryDelay, cancellation.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer network event or an explicit stop superseded this recovery.
+        }
+        finally
+        {
+            lock (_stateLock)
+            {
+                if (ReferenceEquals(_recoveryCancellation, cancellation))
+                {
+                    _recoveryCancellation = null;
+                }
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private void HandleUnexpectedExit(Process process)
+    {
+        bool recover;
+        int exitCode;
+        try
+        {
+            exitCode = process.ExitCode;
+        }
+        catch (InvalidOperationException)
+        {
+            exitCode = -1;
+        }
+
+        lock (_stateLock)
+        {
+            recover = ReferenceEquals(_process, process) && _shouldRun;
+            if (ReferenceEquals(_process, process))
+            {
+                _process = null;
+            }
+        }
+
+        if (!recover)
+        {
+            return;
+        }
+
+        process.Dispose();
+        ChangeState(ReceiverState.Faulted, $"Engine wurde beendet (Code {exitCode})");
+        LogReceived?.Invoke("Die Engine wurde unerwartet beendet; automatischer Neustart folgt.");
+        ScheduleRecovery("Engine wurde unerwartet beendet", TimeSpan.FromSeconds(2));
+    }
+
+    private void CancelRecovery()
+    {
+        lock (_stateLock)
+        {
+            _recoveryCancellation?.Cancel();
+        }
+    }
+
+    private static bool IsMdnsFailure(string line) =>
+        line.Contains("mDNS IPv4 send error", StringComparison.OrdinalIgnoreCase)
+        || line.Contains("mDNS multicast interface error", StringComparison.OrdinalIgnoreCase)
+        || line.Contains("mDNS IPv4 socket error", StringComparison.OrdinalIgnoreCase)
+        || line.Contains("dnssd_register_raop failed", StringComparison.OrdinalIgnoreCase)
+        || line.Contains("dnssd_register_airplay failed", StringComparison.OrdinalIgnoreCase);
+
+    private static AppSettings CopySettings(AppSettings settings) => new()
+    {
+        ReceiverName = settings.ReceiverName,
+        RequirePin = settings.RequirePin,
+        Fullscreen = settings.Fullscreen,
+        RunInBackground = settings.RunInBackground,
+        Quality = settings.Quality,
+        NetworkAdapterId = settings.NetworkAdapterId,
+        PortStart = settings.PortStart,
+        AllowPublicNetworks = settings.AllowPublicNetworks
+    };
 
     private void ChangeState(ReceiverState state, string message) =>
         StateChanged?.Invoke(state, message);
 
     public void Dispose()
     {
-        if (_process is { HasExited: false })
+        if (_disposed)
         {
-            _requestedStop = true;
-            _process.Kill(true);
+            return;
         }
 
-        _process?.Dispose();
+        _disposed = true;
+        _shouldRun = false;
+        CancelRecovery();
+        UnsubscribeFromNetworkChanges();
+
+        Process? process;
+        lock (_stateLock)
+        {
+            process = _process;
+            _process = null;
+        }
+
+        try
+        {
+            if (process is { HasExited: false })
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // The process already exited.
+        }
+        finally
+        {
+            process?.Dispose();
+        }
     }
 
     [GeneratedRegex(@"PIN\s*=\s*[""']?(\d{4})", RegexOptions.IgnoreCase)]
     private static partial Regex PinPattern();
+
+    private sealed class NetworkUnavailableException : InvalidOperationException
+    {
+        public NetworkUnavailableException()
+            : base("Es wurde keine aktive IPv4-LAN-Verbindung gefunden.")
+        {
+        }
+    }
 }

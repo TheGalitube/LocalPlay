@@ -109,6 +109,9 @@ pacman -S --noconfirm --needed \
         }
     }
 
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'src\LocalPlay.App\Assets\LocalPlay.ico') `
+        -Destination (Join-Path $uxplayRoot 'localplay.ico') -Force
+
     $uxplayUnixPath = ($uxplayRoot -replace '\\', '/')
     if ($uxplayUnixPath -match '^([A-Za-z]):/(.*)$') {
         $uxplayUnixPath = "/$($Matches[1].ToLower())/$($Matches[2])"

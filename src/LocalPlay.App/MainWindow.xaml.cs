@@ -1,9 +1,18 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Media;
 using LocalPlay.Models;
 using LocalPlay.Services;
+using Application = System.Windows.Application;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
+using MessageBox = System.Windows.MessageBox;
+using SolidColorBrush = System.Windows.Media.SolidColorBrush;
+using Drawing = System.Drawing;
+using WinForms = System.Windows.Forms;
 
 namespace LocalPlay;
 
@@ -19,14 +28,18 @@ public partial class MainWindow : Window
     private readonly SettingsStore _settingsStore = new();
     private readonly AirPlayEngine _engine = new();
     private IReadOnlyList<NetworkAdapterOption> _networkAdapters = [];
+    private WinForms.NotifyIcon? _notifyIcon;
+    private HwndSource? _windowSource;
     private bool _loadingNetworkSettings;
     private bool _closing;
+    private bool _backgroundHintShown;
 
     public MainWindow()
     {
         InitializeComponent();
         PopulateNetworkAdapters();
         LoadSettings();
+        InitializeTrayIcon();
 
         HostNameText.Text = Environment.MachineName;
         UpdateNetworkSummary();
@@ -39,6 +52,7 @@ public partial class MainWindow : Window
         });
         _engine.StateChanged += (state, message) =>
             Dispatcher.Invoke(() => ApplyState(state, message));
+        _engine.ClientConnected += () => Dispatcher.Invoke(ShowAndActivate);
     }
 
     private async void StartStopButton_Click(object sender, RoutedEventArgs e)
@@ -254,6 +268,15 @@ public partial class MainWindow : Window
         ResetNetworkTest();
     }
 
+    private void BackgroundModeCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        _settingsStore.Save(ReadSettings());
+        UpdateTrayIconVisibility();
+        AppendLog(BackgroundModeCheckBox.IsChecked == true
+            ? "Hintergrundbetrieb aktiviert. LocalPlay bleibt beim Schließen verfügbar."
+            : "Hintergrundbetrieb deaktiviert. LocalPlay wird beim Schließen beendet.");
+    }
+
     private void PopulateNetworkAdapters(string? preferredId = null)
     {
         _loadingNetworkSettings = true;
@@ -280,6 +303,7 @@ public partial class MainWindow : Window
         ReceiverNameTextBox.Text = settings.ReceiverName;
         PinCheckBox.IsChecked = settings.RequirePin;
         FullscreenCheckBox.IsChecked = settings.Fullscreen;
+        BackgroundModeCheckBox.IsChecked = settings.RunInBackground;
         AllowPublicNetworksCheckBox.IsChecked = settings.AllowPublicNetworks;
         UpdateFirewallProfileSummary();
 
@@ -325,6 +349,7 @@ public partial class MainWindow : Window
             ReceiverName = ReceiverNameTextBox.Text.Trim(),
             RequirePin = PinCheckBox.IsChecked == true,
             Fullscreen = FullscreenCheckBox.IsChecked == true,
+            RunInBackground = BackgroundModeCheckBox.IsChecked == true,
             Quality = (QualityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()
                 ?? "1080p · 30 FPS",
             NetworkAdapterId = selectedAdapter?.IsAutomatic == false
@@ -548,6 +573,103 @@ public partial class MainWindow : Window
         LogTextBox.ScrollToEnd();
     }
 
+    private void InitializeTrayIcon()
+    {
+        var menu = new WinForms.ContextMenuStrip();
+        menu.Items.Add("LocalPlay öffnen", null, (_, _) =>
+            Dispatcher.BeginInvoke(ShowAndActivate));
+        menu.Items.Add(new WinForms.ToolStripSeparator());
+        menu.Items.Add("Beenden", null, async (_, _) =>
+        {
+            var shutdownTask = await Dispatcher.InvokeAsync(ExitApplicationAsync);
+            await shutdownTask;
+        });
+
+        var executablePath = Environment.ProcessPath;
+        _notifyIcon = new WinForms.NotifyIcon
+        {
+            Text = "Local Play Viewer",
+            ContextMenuStrip = menu,
+            Icon = executablePath is null
+                ? Drawing.SystemIcons.Application
+                : Drawing.Icon.ExtractAssociatedIcon(executablePath)
+                    ?? Drawing.SystemIcons.Application
+        };
+        _notifyIcon.DoubleClick += (_, _) => Dispatcher.BeginInvoke(ShowAndActivate);
+        UpdateTrayIconVisibility();
+    }
+
+    private void UpdateTrayIconVisibility()
+    {
+        if (_notifyIcon is not null)
+        {
+            _notifyIcon.Visible = BackgroundModeCheckBox.IsChecked == true;
+        }
+    }
+
+    private void ShowAndActivate()
+    {
+        if (_closing)
+        {
+            return;
+        }
+
+        Show();
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _windowSource = PresentationSource.FromVisual(this) as HwndSource;
+        _windowSource?.AddHook(HandleWindowMessage);
+    }
+
+    private IntPtr HandleWindowMessage(
+        IntPtr window,
+        int message,
+        IntPtr wordParameter,
+        IntPtr longParameter,
+        ref bool handled)
+    {
+        if (message == App.ActivateWindowMessage)
+        {
+            handled = true;
+            Dispatcher.BeginInvoke(ShowAndActivate);
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private async Task ExitApplicationAsync()
+    {
+        if (_closing)
+        {
+            return;
+        }
+
+        _closing = true;
+        _settingsStore.Save(ReadSettings());
+        await _engine.StopAsync();
+        _engine.Dispose();
+        if (_notifyIcon is not null)
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            _notifyIcon = null;
+        }
+
+        Application.Current.Shutdown();
+    }
+
     protected override async void OnClosing(CancelEventArgs e)
     {
         if (_closing)
@@ -556,11 +678,33 @@ public partial class MainWindow : Window
             return;
         }
 
+        var settings = ReadSettings();
+        _settingsStore.Save(settings);
+        if (settings.RunInBackground)
+        {
+            e.Cancel = true;
+            Hide();
+            if (!_backgroundHintShown && _notifyIcon is not null)
+            {
+                _backgroundHintShown = true;
+                _notifyIcon.ShowBalloonTip(
+                    3500,
+                    "LocalPlay läuft weiter",
+                    "Der Empfänger bleibt im Hintergrund verfügbar. Doppelklicke auf das Symbol, um LocalPlay zu öffnen.",
+                    WinForms.ToolTipIcon.Info);
+            }
+
+            return;
+        }
+
         e.Cancel = true;
-        _closing = true;
-        _settingsStore.Save(ReadSettings());
-        await _engine.StopAsync();
-        _engine.Dispose();
-        Close();
+        await ExitApplicationAsync();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _windowSource?.RemoveHook(HandleWindowMessage);
+        _windowSource = null;
+        base.OnClosed(e);
     }
 }
