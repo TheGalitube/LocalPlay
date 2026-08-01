@@ -6,7 +6,9 @@ public sealed class AppSettings
     public bool RequirePin { get; set; } = true;
     public bool Fullscreen { get; set; }
     public bool RunInBackground { get; set; }
-    public string Quality { get; set; } = "1080p · 30 FPS";
+    public string Quality { get; set; } = "2K · 60 FPS (HEVC)";
+    public string PlaybackProfile { get; set; } = "EditingLowLatency";
+    public int StreamingDefaultsVersion { get; set; }
     public string NetworkAdapterId { get; set; } = string.Empty;
     public int PortStart { get; set; } = 7000;
     public bool AllowPublicNetworks { get; set; }

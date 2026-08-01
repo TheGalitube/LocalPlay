@@ -21,9 +21,17 @@ public sealed class SettingsStore
     {
         try
         {
-            return File.Exists(_path)
+            var settings = File.Exists(_path)
                 ? JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path)) ?? new AppSettings()
                 : new AppSettings();
+            if (settings.StreamingDefaultsVersion < 1)
+            {
+                settings.Quality = "2K · 60 FPS (HEVC)";
+                settings.PlaybackProfile = "EditingLowLatency";
+                settings.StreamingDefaultsVersion = 1;
+            }
+
+            return settings;
         }
         catch
         {
@@ -33,6 +41,7 @@ public sealed class SettingsStore
 
     public void Save(AppSettings settings)
     {
+        settings.StreamingDefaultsVersion = 1;
         var temporaryPath = _path + ".tmp";
         File.WriteAllText(temporaryPath, JsonSerializer.Serialize(settings, JsonOptions));
         File.Move(temporaryPath, _path, true);

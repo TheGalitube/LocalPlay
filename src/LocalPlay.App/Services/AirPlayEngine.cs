@@ -106,11 +106,23 @@ public sealed partial class AirPlayEngine : IDisposable
                 ? bundledPluginDirectory
                 : systemPluginDirectory;
 
-        var bundledPluginScanner =
-            Path.Combine(binDirectory, "libexec", "gstreamer-1.0", "gst-plugin-scanner.exe");
-        if (File.Exists(bundledPluginScanner))
+        var bundledPluginScanner = Path.Combine(
+            binDirectory,
+            "libexec",
+            "gstreamer-1.0",
+            "gst-plugin-scanner.exe");
+        var systemPluginScanner = Path.GetFullPath(Path.Combine(
+            binDirectory,
+            "..",
+            "libexec",
+            "gstreamer-1.0",
+            "gst-plugin-scanner.exe"));
+        var pluginScanner = File.Exists(bundledPluginScanner)
+            ? bundledPluginScanner
+            : systemPluginScanner;
+        if (File.Exists(pluginScanner))
         {
-            startInfo.Environment["GST_PLUGIN_SCANNER"] = bundledPluginScanner;
+            startInfo.Environment["GST_PLUGIN_SCANNER"] = pluginScanner;
         }
 
         var registryDirectory = Path.Combine(
@@ -122,7 +134,8 @@ public sealed partial class AirPlayEngine : IDisposable
             Path.Combine(registryDirectory, $"gstreamer-registry-{engineTimestamp}.bin");
         startInfo.Environment["UXPLAY_MDNS_IPV4"] = selectedAdapter.IPv4Address;
 
-        AddArguments(startInfo, settings, pairingRegisterPath);
+        var videoPipeline = await ResolveVideoPipelineAsync(startInfo, settings);
+        AddArguments(startInfo, settings, pairingRegisterPath, videoPipeline);
 
         var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
         process.OutputDataReceived += HandleOutput;
@@ -145,6 +158,13 @@ public sealed partial class AirPlayEngine : IDisposable
             process.BeginErrorReadLine();
             LogReceived?.Invoke(
                 $"mDNS wird auf {selectedAdapter.Name} ({selectedAdapter.IPv4Address}) beworben.");
+            LogReceived?.Invoke(videoPipeline.StatusMessage);
+            LogReceived?.Invoke(string.Equals(
+                    settings.PlaybackProfile,
+                    "SynchronizedVideo",
+                    StringComparison.Ordinal)
+                ? "Wiedergabeprofil: Video · A/V-synchron."
+                : "Wiedergabeprofil: Videoschnitt · geringe Latenz; Frames werden ohne zusätzliche Zeitstempel-Pufferung ausgegeben.");
             await Task.CompletedTask;
         }
         catch
@@ -166,7 +186,8 @@ public sealed partial class AirPlayEngine : IDisposable
     private static void AddArguments(
         ProcessStartInfo startInfo,
         AppSettings settings,
-        string pairingRegisterPath)
+        string pairingRegisterPath,
+        VideoPipelineConfiguration videoPipeline)
     {
         startInfo.ArgumentList.Add("-n");
         startInfo.ArgumentList.Add(settings.ReceiverName);
@@ -179,9 +200,29 @@ public sealed partial class AirPlayEngine : IDisposable
         startInfo.ArgumentList.Add("-as");
         startInfo.ArgumentList.Add("wasapisink");
         startInfo.ArgumentList.Add("-vsync");
-        startInfo.ArgumentList.Add("no");
+        if (!string.Equals(
+                settings.PlaybackProfile,
+                "SynchronizedVideo",
+                StringComparison.Ordinal))
+        {
+            startInfo.ArgumentList.Add("no");
+        }
 
-        switch (settings.Quality)
+        if (videoPipeline.UseD3D11HardwareDecoding)
+        {
+            startInfo.ArgumentList.Add("-vd");
+            startInfo.ArgumentList.Add("d3d11h264dec");
+            startInfo.ArgumentList.Add("-vc");
+            startInfo.ArgumentList.Add("d3d11convert");
+        }
+
+        // Let a reconnect replace a stale session and reset dead clients sooner than
+        // UxPlay's 15-second default without reacting to brief WLAN jitter.
+        startInfo.ArgumentList.Add("-nohold");
+        startInfo.ArgumentList.Add("-reset");
+        startInfo.ArgumentList.Add("8");
+
+        switch (videoPipeline.EffectiveQuality)
         {
             case "1080p · 60 FPS":
                 AddDisplayMode(startInfo, "1920x1080@60", 60, useHevc: false);
@@ -215,6 +256,104 @@ public sealed partial class AirPlayEngine : IDisposable
             startInfo.ArgumentList.Add(pairingRegisterPath);
         }
     }
+
+    private async Task<VideoPipelineConfiguration> ResolveVideoPipelineAsync(
+        ProcessStartInfo engineStartInfo,
+        AppSettings settings)
+    {
+        var requestedQuality = settings.Quality;
+        var requiresHevc = requestedQuality.Contains("(HEVC)", StringComparison.Ordinal);
+        var inspector = Path.Combine(
+            Path.GetDirectoryName(engineStartInfo.FileName)!,
+            "gst-inspect-1.0.exe");
+
+        if (!File.Exists(inspector))
+        {
+            return new VideoPipelineConfiguration(
+                requestedQuality,
+                false,
+                "GStreamer-Hardwareprüfung nicht verfügbar; Zielauflösung bleibt erhalten und die kompatible Decoderwahl ist aktiv.");
+        }
+
+        try
+        {
+            var inspectInfo = new ProcessStartInfo(inspector)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                WorkingDirectory = engineStartInfo.WorkingDirectory
+            };
+            foreach (var variable in engineStartInfo.Environment)
+            {
+                inspectInfo.Environment[variable.Key] = variable.Value;
+            }
+
+            inspectInfo.ArgumentList.Add("d3d11");
+            using var inspectorProcess = Process.Start(inspectInfo)
+                ?? throw new InvalidOperationException("gst-inspect konnte nicht gestartet werden.");
+            var standardOutput = inspectorProcess.StandardOutput.ReadToEndAsync();
+            var standardError = inspectorProcess.StandardError.ReadToEndAsync();
+            // On the first run gst-inspect also creates the shared plugin registry.
+            // UxPlay would pay the same cost immediately afterwards, so allow that
+            // bounded initialization to finish and reuse its registry.
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            try
+            {
+                await inspectorProcess.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                inspectorProcess.Kill(entireProcessTree: true);
+                throw new TimeoutException("GStreamer-Hardwareprüfung hat nicht rechtzeitig geantwortet.");
+            }
+
+            var output = (await standardOutput) + Environment.NewLine + (await standardError);
+            var hasConverter = HasGStreamerFeature(output, "d3d11convert");
+            var hasH264Decoder = HasGStreamerFeature(output, "d3d11h264dec");
+            var hasH265Decoder = HasGStreamerFeature(output, "d3d11h265dec");
+            var supportsRequestedCodec = hasH264Decoder && (!requiresHevc || hasH265Decoder);
+
+            if (inspectorProcess.ExitCode == 0 && hasConverter && supportsRequestedCodec)
+            {
+                return new VideoPipelineConfiguration(
+                    requestedQuality,
+                    true,
+                    requiresHevc
+                        ? "Direct3D11-Hardwaredecoding für H.264/HEVC aktiv; 2K/4K bleibt auf der GPU."
+                        : "Direct3D11-Hardwaredecoding für H.264 aktiv; Video bleibt auf der GPU.");
+            }
+
+            if (requiresHevc)
+            {
+                return new VideoPipelineConfiguration(
+                    "1080p · 60 FPS",
+                    hasConverter && hasH264Decoder,
+                    "Kein vollständiger Direct3D11-HEVC-Pfad erkannt; automatischer Fallback auf 1080p · 60 FPS.");
+            }
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            and not StackOverflowException)
+        {
+            LogReceived?.Invoke($"Hardwareprüfung übersprungen: {exception.Message}");
+            return new VideoPipelineConfiguration(
+                requestedQuality,
+                false,
+                "Hardwarefähigkeit war nicht sicher prüfbar; Zielauflösung bleibt erhalten und GStreamer wählt den Decoder automatisch.");
+        }
+
+        return new VideoPipelineConfiguration(
+            requestedQuality,
+            false,
+            "Direct3D11-Hardwaredecoder nicht verfügbar; GStreamer wählt einen kompatiblen Decoder automatisch.");
+    }
+
+    private static bool HasGStreamerFeature(string inspectionOutput, string feature) =>
+        inspectionOutput.Contains(
+            $"  {feature}:",
+            StringComparison.OrdinalIgnoreCase);
 
     private static void AddDisplayMode(
         ProcessStartInfo startInfo,
@@ -501,6 +640,8 @@ public sealed partial class AirPlayEngine : IDisposable
         Fullscreen = settings.Fullscreen,
         RunInBackground = settings.RunInBackground,
         Quality = settings.Quality,
+        PlaybackProfile = settings.PlaybackProfile,
+        StreamingDefaultsVersion = settings.StreamingDefaultsVersion,
         NetworkAdapterId = settings.NetworkAdapterId,
         PortStart = settings.PortStart,
         AllowPublicNetworks = settings.AllowPublicNetworks
@@ -508,6 +649,11 @@ public sealed partial class AirPlayEngine : IDisposable
 
     private void ChangeState(ReceiverState state, string message) =>
         StateChanged?.Invoke(state, message);
+
+    private readonly record struct VideoPipelineConfiguration(
+        string EffectiveQuality,
+        bool UseD3D11HardwareDecoding,
+        string StatusMessage);
 
     public void Dispose()
     {

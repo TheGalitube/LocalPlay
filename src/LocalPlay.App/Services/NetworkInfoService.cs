@@ -36,7 +36,12 @@ public static class NetworkInfoService
             .Where(option => option is not null)
             .Cast<NetworkAdapterOption>()
             .OrderByDescending(option => option.HasGateway)
-            .ThenByDescending(option => option.Kind is "Ethernet" or "WLAN")
+            .ThenByDescending(option => option.Kind switch
+            {
+                "Ethernet" => 2,
+                "WLAN" => 1,
+                _ => 0
+            })
             .ThenBy(option => option.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToArray();
 
