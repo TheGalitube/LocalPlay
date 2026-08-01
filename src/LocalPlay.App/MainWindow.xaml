@@ -212,7 +212,7 @@
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Qualität" FontSize="12"
                                            Foreground="{StaticResource MutedInk}" Margin="1,0,0,6"/>
-                                <ComboBox x:Name="QualityComboBox" SelectedIndex="0">
+                                <ComboBox x:Name="QualityComboBox" SelectedIndex="3">
                                     <ComboBoxItem Content="1080p · 30 FPS"/>
                                     <ComboBoxItem Content="1080p · 60 FPS"/>
                                     <ComboBoxItem Content="2K · 30 FPS (HEVC)"/>
@@ -220,9 +220,23 @@
                                     <ComboBoxItem Content="4K · 30 FPS (HEVC)"/>
                                     <ComboBoxItem Content="4K · 60 FPS (HEVC)"/>
                                 </ComboBox>
-                                <TextBlock Text="2K/4K benötigen einen HEVC-fähigen Mac."
+                                <TextBlock Text="Videoschnitt-Ziel: 2K · 60 FPS. Ohne HEVC-Hardware fällt LocalPlay automatisch auf 1080p · 60 FPS zurück."
                                            Foreground="#8A94A6"
                                            FontSize="10.5"
+                                           TextWrapping="Wrap"
+                                           Margin="2,6,0,0"/>
+                                <TextBlock Text="Wiedergabeprofil" FontSize="12"
+                                           Foreground="{StaticResource MutedInk}" Margin="1,12,0,6"/>
+                                <ComboBox x:Name="PlaybackProfileComboBox" SelectedIndex="0">
+                                    <ComboBoxItem Content="Videoschnitt · 2K/60 · geringe Latenz"
+                                                  Tag="EditingLowLatency"/>
+                                    <ComboBoxItem Content="Video · A/V-synchron"
+                                                  Tag="SynchronizedVideo"/>
+                                </ComboBox>
+                                <TextBlock Text="Videoschnitt zeigt Frames sofort; A/V-synchron hält Ton und Bild bei Filmwiedergabe zusammen."
+                                           Foreground="#8A94A6"
+                                           FontSize="10.5"
+                                           TextWrapping="Wrap"
                                            Margin="2,6,0,0"/>
                             </StackPanel>
                         </Grid>

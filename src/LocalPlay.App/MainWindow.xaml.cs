@@ -309,11 +309,17 @@ public partial class MainWindow : Window
 
         QualityComboBox.SelectedIndex = settings.Quality switch
         {
+            "1080p · 30 FPS" => 0,
             "1080p · 60 FPS" => 1,
             "2K · 30 FPS (HEVC)" => 2,
             "2K · 60 FPS (HEVC)" => 3,
             "4K · 30 FPS (HEVC)" => 4,
             "4K · 60 FPS (HEVC)" => 5,
+            _ => 3
+        };
+        PlaybackProfileComboBox.SelectedIndex = settings.PlaybackProfile switch
+        {
+            "SynchronizedVideo" => 1,
             _ => 0
         };
 
@@ -351,7 +357,9 @@ public partial class MainWindow : Window
             Fullscreen = FullscreenCheckBox.IsChecked == true,
             RunInBackground = BackgroundModeCheckBox.IsChecked == true,
             Quality = (QualityComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()
-                ?? "1080p · 30 FPS",
+                ?? "2K · 60 FPS (HEVC)",
+            PlaybackProfile = (PlaybackProfileComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString()
+                ?? "EditingLowLatency",
             NetworkAdapterId = selectedAdapter?.IsAutomatic == false
                 ? selectedAdapter.Id
                 : string.Empty,
@@ -548,6 +556,7 @@ public partial class MainWindow : Window
         StartStopButton.Content = running ? "Empfänger stoppen" : "Empfänger starten";
         ReceiverNameTextBox.IsEnabled = !running;
         QualityComboBox.IsEnabled = !running;
+        PlaybackProfileComboBox.IsEnabled = !running;
         PinCheckBox.IsEnabled = !running;
         FullscreenCheckBox.IsEnabled = !running;
         NetworkAdapterComboBox.IsEnabled = !running;

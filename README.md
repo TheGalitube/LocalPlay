@@ -60,6 +60,8 @@ Client-Isolation blockieren häufig mDNS oder direkte Geräteverbindungen.
 - Verwendung als zusätzlicher AirPlay-Bildschirm unter macOS
 - PIN-Kopplung für neue Geräte
 - 1080p, 1440p/2K und 4K mit bis zu 60 FPS
+- Wiedergabeprofile für latenzarme Videoschnitt-Arbeit oder A/V-synchrone
+  Filmwiedergabe
 - automatische oder manuelle Auswahl des IPv4-Netzwerkadapters
 - automatische Erneuerung der AirPlay-Ankündigung nach Netzwerkwechseln
 - optionaler Hintergrundbetrieb über den Windows-Infobereich
@@ -75,6 +77,27 @@ Schließen-Button das Fenster aus, während der Prozess und ein gestarteter
 Empfänger weiterlaufen. Über das Symbol im Windows-Infobereich lässt sich das
 Fenster wieder öffnen oder LocalPlay vollständig beenden. Bei einer neuen
 Verbindung kommt das normale App-Fenster automatisch wieder nach vorn.
+
+### Flüssiger zweiter Bildschirm für Videoschnitt
+
+Wähle auf **Empfänger** die Qualität **2K · 60 FPS (HEVC)** und das Profil
+**Videoschnitt · 2K/60 · geringe Latenz**. Das ist die neue Voreinstellung: UxPlay
+zeigt eingehende Frames ohne zusätzliche Zeitstempel-Pufferung an, LocalPlay
+verwendet nach einer Laufzeitprüfung bevorzugt Direct3D11-Hardwaredecoding und
+fordert beim Mac 2560 × 1440 mit bis zu 60 FPS an. Fehlt ein vollständiger
+Direct3D11-HEVC-Pfad, fällt LocalPlay automatisch auf 1080p · 60 FPS und eine
+kompatible Decoderwahl zurück, statt 2K über einen überlasteten Softwarepfad zu
+erzwingen.
+
+Für reine Filmwiedergabe hält **Video · A/V-synchron** Bild und Ton anhand der
+AirPlay-Zeitstempel zusammen. Bei überlastetem WLAN oder Decoder können dabei
+verspätete Frames verworfen werden, statt wachsende Verzögerung aufzubauen.
+
+AirPlay bleibt komprimierte, netzwerkabhängige Bildschirmübertragung. Für
+flüssige Timeline- und Fensterarbeit sind 5-GHz-/6-GHz-WLAN mit gutem Empfang
+oder Ethernet am Windows-PC sinnvoll. Farbverbindliches Grading, garantiert
+verlustfreie Farbwiedergabe und die konstant sehr niedrige Latenz eines
+für Game-Streaming entwickelten Protokolls kann AirPlay nicht zusichern.
 
 ## Grenzen
 
