@@ -11,3 +11,5 @@ TestResults/
 *.zip
 *.sha256
 *.lnk
+.env
+APIS/
