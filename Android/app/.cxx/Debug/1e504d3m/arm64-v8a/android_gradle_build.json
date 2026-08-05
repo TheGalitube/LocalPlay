@@ -1,0 +1,89 @@
+{
+  "buildFiles": [
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/crypto/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/curve25519/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/ed25519/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/playfair/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/plist/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/maxmittelstadt/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/maxmittelstadt/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "crypto::@2c222fbfe75fe06406f8": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "crypto",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/crypto/libcrypto.a"
+    },
+    "curve25519::@3c4cd1fc86b038f9dac3": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "curve25519",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/curve25519/libcurve25519.a"
+    },
+    "ed25519::@c68610e3ee4e7a5057d6": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "ed25519",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/ed25519/libed25519.a"
+    },
+    "fdk-aac::@8dd50c39b80afa48e8dd": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "fdk-aac",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/fdk_out/libfdk-aac.a"
+    },
+    "localplay_android::@6890427a1f51a3e7e1df": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "localplay_android",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/build/intermediates/cxx/Debug/1e504d3m/obj/arm64-v8a/liblocalplay_android.so",
+      "runtimeFiles": []
+    },
+    "playfair::@3c9846d871196ed3e8dd": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "playfair",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/playfair/libplayfair.a"
+    },
+    "plist::@05fcd399a852d32d65bf": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "plist",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/plist/libplist.a"
+    },
+    "raopserver::@3f416010d7527c896637": {
+      "toolchain": "toolchain",
+      "abi": "arm64-v8a",
+      "artifactName": "raopserver",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a/airplayserver-build/libraopserver.a"
+    }
+  },
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/Users/maxmittelstadt/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/Users/maxmittelstadt/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [
+    "c"
+  ],
+  "cppFileExtensions": [
+    "cpp"
+  ]
+}

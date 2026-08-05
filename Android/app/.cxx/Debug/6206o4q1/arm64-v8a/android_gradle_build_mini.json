@@ -1,0 +1,76 @@
+{
+  "buildFiles": [
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/crypto/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/curve25519/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/ed25519/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/playfair/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/plist/CMakeLists.txt",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/maxmittelstadt/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/maxmittelstadt/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "plist::@05fcd399a852d32d65bf": {
+      "artifactName": "plist",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/plist/libplist.a",
+      "runtimeFiles": []
+    },
+    "curve25519::@3c4cd1fc86b038f9dac3": {
+      "artifactName": "curve25519",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/curve25519/libcurve25519.a",
+      "runtimeFiles": []
+    },
+    "raopserver::@3f416010d7527c896637": {
+      "artifactName": "raopserver",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/libraopserver.a",
+      "runtimeFiles": []
+    },
+    "playfair::@3c9846d871196ed3e8dd": {
+      "artifactName": "playfair",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/playfair/libplayfair.a",
+      "runtimeFiles": []
+    },
+    "fdk-aac::@8dd50c39b80afa48e8dd": {
+      "artifactName": "fdk-aac",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/fdk_out/libfdk-aac.a",
+      "runtimeFiles": []
+    },
+    "localplay_android::@6890427a1f51a3e7e1df": {
+      "artifactName": "localplay_android",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/build/intermediates/cxx/Debug/6206o4q1/obj/arm64-v8a/liblocalplay_android.so",
+      "runtimeFiles": []
+    },
+    "crypto::@2c222fbfe75fe06406f8": {
+      "artifactName": "crypto",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/crypto/libcrypto.a",
+      "runtimeFiles": []
+    },
+    "ed25519::@c68610e3ee4e7a5057d6": {
+      "artifactName": "ed25519",
+      "abi": "arm64-v8a",
+      "output": "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/6206o4q1/arm64-v8a/airplayserver-build/ed25519/libed25519.a",
+      "runtimeFiles": []
+    }
+  }
+}

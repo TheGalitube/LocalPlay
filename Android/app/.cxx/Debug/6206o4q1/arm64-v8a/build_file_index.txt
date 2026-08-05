@@ -1,0 +1,8 @@
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/crypto/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/curve25519/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/ed25519/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/playfair/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib/plist/CMakeLists.txt
+/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/CMakeLists.txt

@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "airplayserver-build/fdk_out",
+		"source" : "airplayserver/third_party/fdk-aac"
+	}
+}

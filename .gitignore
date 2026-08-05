@@ -13,3 +13,11 @@ TestResults/
 *.lnk
 .env
 APIS/
+
+# Android
+Android/.gradle/
+Android/local.properties
+Android/**/build/
+Android/.kotlin/
+*.jks
+*.keystore

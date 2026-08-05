@@ -1,0 +1,260 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/build/intermediates/cxx/Debug/1e504d3m/obj/arm64-v8a/liblocalplay_android.so"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 7,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 16,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 15,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -std=c++17 -Wall -Wextra -fno-limit-debug-info  -fPIC"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"define" : "localplay_android_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 3,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/lib"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libAACdec/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libAACenc/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libPCMutils/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libFDK/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libSYS/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libMpegTPDec/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libMpegTPEnc/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libSBRdec/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libSBRenc/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libArithCoding/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libDRCdec/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libSACdec/include"
+				},
+				{
+					"backtrace" : 2,
+					"path" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp/airplayserver/third_party/fdk-aac/./libSACenc/include"
+				}
+			],
+			"language" : "CXX",
+			"sourceIndexes" : 
+			[
+				0,
+				1
+			],
+			"sysroot" : 
+			{
+				"path" : "/Users/maxmittelstadt/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+			}
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "crypto::@2c222fbfe75fe06406f8"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "curve25519::@3c4cd1fc86b038f9dac3"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "ed25519::@c68610e3ee4e7a5057d6"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "playfair::@3c9846d871196ed3e8dd"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "plist::@05fcd399a852d32d65bf"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "fdk-aac::@8dd50c39b80afa48e8dd"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "raopserver::@3f416010d7527c896637"
+		}
+	],
+	"id" : "localplay_android::@6890427a1f51a3e7e1df",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-landroid",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-llog",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "airplayserver-build/libraopserver.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "airplayserver-build/crypto/libcrypto.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "airplayserver-build/curve25519/libcurve25519.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "airplayserver-build/ed25519/libed25519.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "airplayserver-build/playfair/libplayfair.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "airplayserver-build/plist/libplist.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "airplayserver-build/fdk_out/libfdk-aac.a",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "/Users/maxmittelstadt/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/lib/aarch64-linux-android/29/liblog.so",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-latomic -lm",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX",
+		"sysroot" : 
+		{
+			"path" : "/Users/maxmittelstadt/Library/Android/sdk/ndk/27.3.13750724/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+		}
+	},
+	"name" : "localplay_android",
+	"nameOnDisk" : "liblocalplay_android.so",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "jni_bridge.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "receiver_engine_airplayserver.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "SHARED_LIBRARY"
+}

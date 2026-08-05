@@ -9,6 +9,14 @@ iPhone, iPad und Mac. Die native Windows-Oberfläche startet den
 Open-Source-Empfänger [UxPlay](https://github.com/FDH2/UxPlay); Streams und
 Geräteerkennung bleiben im lokalen Netzwerk.
 
+Ein erster funktionsfähiger Android-Port liegt unter [`Android/`](Android/).
+Er enthält einen nativen Legacy-AirPlay-Mirroring-Kern, Android-NSD,
+hardwarebeschleunigte H.264-/PCM-Wiedergabe und eine adaptive
+Material-3-Oberfläche. Das Videobild erscheint erst bei einer Verbindung und
+wird dann automatisch im immersiven Vollbild angezeigt. PIN-Pairing und eine
+abschließende Kompatibilitätsprüfung über mehrere Apple-Systemversionen stehen
+noch aus.
+
 ## Einfach starten
 
 ### Für normale Nutzer

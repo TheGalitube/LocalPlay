@@ -1,0 +1,241 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "airplayserver-build",
+					"childIndexes" : 
+					[
+						2,
+						3,
+						4,
+						5,
+						6,
+						7
+					],
+					"jsonFile" : "directory-airplayserver-build-Debug-90c01895a6ef1964ffc1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "airplayserver/lib",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "airplayserver-build/crypto",
+					"jsonFile" : "directory-airplayserver-build.crypto-Debug-647b40b6ef3be92f6a30.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "airplayserver/lib/crypto",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "airplayserver-build/curve25519",
+					"jsonFile" : "directory-airplayserver-build.curve25519-Debug-041d8b7c221f31163bb8.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "airplayserver/lib/curve25519",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "airplayserver-build/ed25519",
+					"jsonFile" : "directory-airplayserver-build.ed25519-Debug-c401697649389767b834.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "airplayserver/lib/ed25519",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "airplayserver-build/playfair",
+					"jsonFile" : "directory-airplayserver-build.playfair-Debug-8a7493cbdb8415ed8c93.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "airplayserver/lib/playfair",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "airplayserver-build/plist",
+					"jsonFile" : "directory-airplayserver-build.plist-Debug-20e69c68a6337dfaa6f2.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "airplayserver/lib/plist",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "airplayserver-build/fdk_out",
+					"jsonFile" : "directory-airplayserver-build.fdk_out-Debug-735646b8bccfc365987b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 0,
+					"source" : "airplayserver/third_party/fdk-aac",
+					"targetIndexes" : 
+					[
+						3
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7
+					],
+					"name" : "localplay_android",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "crypto::@2c222fbfe75fe06406f8",
+					"jsonFile" : "target-crypto-Debug-511e01bfefb785e15b77.json",
+					"name" : "crypto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "curve25519::@3c4cd1fc86b038f9dac3",
+					"jsonFile" : "target-curve25519-Debug-e0dd4b2886a58ba0db89.json",
+					"name" : "curve25519",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "ed25519::@c68610e3ee4e7a5057d6",
+					"jsonFile" : "target-ed25519-Debug-e025ebb9ca5d67243b3a.json",
+					"name" : "ed25519",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "fdk-aac::@8dd50c39b80afa48e8dd",
+					"jsonFile" : "target-fdk-aac-Debug-62bb100907fbead37a92.json",
+					"name" : "fdk-aac",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "localplay_android::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-localplay_android-Debug-d36d14b3b3a93b2a3963.json",
+					"name" : "localplay_android",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "playfair::@3c9846d871196ed3e8dd",
+					"jsonFile" : "target-playfair-Debug-ebef9e890de2042ab9e3.json",
+					"name" : "playfair",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "plist::@05fcd399a852d32d65bf",
+					"jsonFile" : "target-plist-Debug-eaaf9733363e5c71b14f.json",
+					"name" : "plist",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "raopserver::@3f416010d7527c896637",
+					"jsonFile" : "target-raopserver-Debug-37e0583934022646eafc.json",
+					"name" : "raopserver",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/.cxx/Debug/1e504d3m/arm64-v8a",
+		"source" : "/Users/maxmittelstadt/Documents/GitHub/LocalPlay/Android/app/src/main/cpp"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}
